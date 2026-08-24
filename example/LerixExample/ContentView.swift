@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import Atelerix
 
 struct ContentView: View {
@@ -12,8 +13,8 @@ struct ContentView: View {
             Form {
                 Section("SDK state") {
                     LabeledContent("Permission", value: status)
-                    LabeledContent("User ID", value: userId ?? "none")
-                    LabeledContent("Device ID", value: deviceId)
+                    copyableRow(label: "User ID", value: userId)
+                    copyableRow(label: "Device ID", value: deviceId)
                 }
 
                 Section("Actions") {
@@ -70,6 +71,27 @@ struct ContentView: View {
     private func refresh() {
         userId = Atelerix.getUserId()
         deviceId = Atelerix.notifications.getDeviceId()
+    }
+
+    @ViewBuilder
+    private func copyableRow(label: String, value: String?) -> some View {
+        HStack {
+            Text(label)
+            Spacer()
+            Text(value ?? "none")
+                .foregroundStyle(.secondary)
+                .lineLimit(1)
+                .truncationMode(.middle)
+            if let value {
+                Button {
+                    UIPasteboard.general.string = value
+                    lastAction = "Copied \(label.lowercased())"
+                } label: {
+                    Image(systemName: "doc.on.doc")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
     }
 }
 
