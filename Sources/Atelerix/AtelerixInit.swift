@@ -16,12 +16,17 @@ enum AtelerixInit {
     @discardableResult
     static func ping() async throws -> AtelerixPingConfig {
         let app = AtelerixDeviceInfo.collectApp()
-        let device = AtelerixDeviceInfo.collectDevice()
         let headers: [String: String] = [
             "appid": app.package ?? "unknown",
             "projectid": AtelerixKeys.shared.projectId,
             "platform": "ios",
-            "os": device.osVersion ?? "unknown",
+            // Despite the name, the backend's dispatch logic (`deliverToDevice`)
+            // checks this field against the literal string "ios" to decide
+            // which push service to use — it's a platform discriminator, not
+            // an OS version. Sending the real OS version here (e.g. "17.0")
+            // silently breaks push delivery: no branch matches, so nothing
+            // ever gets sent and no error is ever recorded.
+            "os": "ios",
         ]
 
         let response = try await AtelerixBackend.get(route: .ping, headers: headers)
