@@ -1,57 +1,59 @@
 import Foundation
 
-/// Registration flow — mirrors `atelerix_init.dart`: register/lookup this
-/// app under the project (`ping`), then register a local user against it.
+/// Registration flow — mirrors `atelerix_init.dart`. `ping` is a get-or-create
+/// call: it registers this app under the project the first time it's called
+/// for a given bundle id + OS, and just looks it up on every call after.
+/// `registerUser` then creates a local user scoped to that app record.
 enum AtelerixInit {
     private static let userIdKey = "atelerix_user_id"
     private static let pingConfigKey = "atelerix_ping_config"
 
-    /// Registers (or looks up) this app under the project, caching the
-    /// result in `AtelerixKeys.projectConfig`.
-    static func registerApp(projectId: String) async throws -> AtelerixPingConfig {
+    /// Registers (or looks up) this app under the project. The returned
+    /// `id` is the backend's UUID for the app record — NOT the bundle id
+    /// sent in the `appid` header — and is what `registerUser`'s
+    /// `projectApp` field and the notifications routes' `appId` field
+    /// reference.
+    @discardableResult
+    static func ping() async throws -> AtelerixPingConfig {
         let app = AtelerixDeviceInfo.collectApp()
-        let body: [String: Any] = [
-            "projectId": projectId,
+        let device = AtelerixDeviceInfo.collectDevice()
+        let headers: [String: String] = [
+            "appid": app.package ?? "unknown",
+            "projectid": AtelerixKeys.shared.projectId,
             "platform": "ios",
-            "package": app.package ?? "unknown",
-            "appName": app.name ?? "unknown",
+            "os": device.osVersion ?? "unknown",
         ]
 
-        let response = try await AtelerixBackend.post(route: .initApp, data: body)
-        let config = try decode(AtelerixPingConfig.self, from: response)
+        let response = try await AtelerixBackend.get(route: .ping, headers: headers)
+        guard let data = response?["data"] as? [String: Any] else {
+            throw AtelerixBackendError.invalidResponse
+        }
+        let config = try decode(AtelerixPingConfig.self, from: data)
+
         AtelerixKeys.shared.projectConfig = config
-        if let data = try? JSONEncoder().encode(config) {
-            AtelerixKeychain.write(pingConfigKey, value: String(data: data, encoding: .utf8) ?? "")
+        if let encoded = try? JSONEncoder().encode(config), let json = String(data: encoded, encoding: .utf8) {
+            AtelerixKeychain.write(pingConfigKey, value: json)
         }
         return config
     }
 
     /// Registers (or re-registers) a local user against the app, returning
-    /// the user id the backend assigned/confirmed.
+    /// the user id the backend assigned.
     @discardableResult
     static func registerUser() async throws -> String {
-        let device = AtelerixDeviceInfo.collectDevice()
+        let config = try await cachedOrFreshPingConfig()
         let app = AtelerixDeviceInfo.collectApp()
-        let userId = existingUserId() ?? UUID().uuidString
 
-        var body: [String: Any] = [
-            "userId": userId,
-            "os": "ios",
+        let body: [String: Any] = [
+            "projectSlug": AtelerixKeys.shared.projectId,
+            "projectApp": config.id ?? "",
             "version": app.version ?? "0.0.0",
         ]
-        if let appId = AtelerixKeys.shared.projectConfig?.appId {
-            body["appId"] = appId
-        }
-        if let deviceData = try? JSONEncoder().encode(device),
-           let deviceJson = String(data: deviceData, encoding: .utf8) {
-            body["device"] = deviceJson
-        }
-        if let appData = try? JSONEncoder().encode(app),
-           let appJson = String(data: appData, encoding: .utf8) {
-            body["app"] = appJson
-        }
 
-        _ = try await AtelerixBackend.post(route: .registerUser, data: body)
+        let response = try await AtelerixBackend.post(route: .registerUser, data: body)
+        guard let userId = response?["user"] as? String else {
+            throw AtelerixBackendError.invalidResponse
+        }
 
         AtelerixKeychain.write(userIdKey, value: userId)
         AtelerixKeys.shared.projectUser = userId
@@ -72,18 +74,20 @@ enum AtelerixInit {
         return stored
     }
 
-    static func cachedPingConfig() -> AtelerixPingConfig? {
+    /// The app record's backend UUID, needed by `registerUser` and the
+    /// notifications routes — cached in memory/Keychain, refreshed via a
+    /// fresh `ping()` call if neither has it.
+    static func cachedOrFreshPingConfig() async throws -> AtelerixPingConfig {
         if let cached = AtelerixKeys.shared.projectConfig { return cached }
-        guard let raw = AtelerixKeychain.read(pingConfigKey), let data = raw.data(using: .utf8) else {
-            return nil
+        if let raw = AtelerixKeychain.read(pingConfigKey), let data = raw.data(using: .utf8),
+           let stored = try? JSONDecoder().decode(AtelerixPingConfig.self, from: data) {
+            AtelerixKeys.shared.projectConfig = stored
+            return stored
         }
-        let config = try? JSONDecoder().decode(AtelerixPingConfig.self, from: data)
-        AtelerixKeys.shared.projectConfig = config
-        return config
+        return try await ping()
     }
 
-    private static func decode<T: Decodable>(_ type: T.Type, from json: [String: Any]?) throws -> T {
-        guard let json = json else { throw AtelerixBackendError.invalidResponse }
+    private static func decode<T: Decodable>(_ type: T.Type, from json: [String: Any]) throws -> T {
         let data = try JSONSerialization.data(withJSONObject: json)
         return try JSONDecoder().decode(T.self, from: data)
     }

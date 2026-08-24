@@ -58,6 +58,12 @@ struct ContentView: View {
             }
             .navigationTitle("Lerix iOS Example")
             .onAppear(perform: refresh)
+            .task {
+                for _ in 0..<10 where userId == nil {
+                    try? await Task.sleep(nanoseconds: 500_000_000)
+                    refresh()
+                }
+            }
         }
     }
 

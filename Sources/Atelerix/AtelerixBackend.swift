@@ -1,15 +1,21 @@
 import Foundation
 
-/// Backend routes — mirrors `Routes` in the Flutter SDK. Keep in sync with
-/// it; these must stay identical since they hit the exact same backend.
-enum AtelerixRoute: String {
-    case initApp = "/plugin/init/ping"
-    case registerUser = "/plugin/init/register-user"
-    case deleteUser = "/plugin/init/user"
-    case sendBug = "/plugin/bugs/create"
-    case registerNotification = "/plugin/notifications/register-token"
-    case subscribeTopic = "/plugin/notifications/subscribe-topic"
-    case unsubscribeTopic = "/plugin/notifications/unsubscribe-topic"
+/// A backend route — mirrors the `atelerix-api` gateway's controller
+/// paths (`:projectId/plugin/...`). `path` excludes the project slug; it's
+/// prefixed automatically from `AtelerixKeys.shared.projectId`.
+struct AtelerixRoute {
+    let method: String
+    let path: String
+
+    static let ping = AtelerixRoute(method: "GET", path: "plugin/init/ping")
+    static let registerUser = AtelerixRoute(method: "POST", path: "plugin/init/register-user")
+    static let deleteUser = AtelerixRoute(method: "DELETE", path: "plugin/init/user")
+    static let sendBug = AtelerixRoute(method: "POST", path: "plugin/bugs/create")
+    static let registerToken = AtelerixRoute(method: "POST", path: "plugin/notifications/register-token")
+    static let senderId = AtelerixRoute(method: "GET", path: "plugin/notifications/sender-id")
+    static let vapidPublicKey = AtelerixRoute(method: "GET", path: "plugin/notifications/vapid-public-key")
+    static let subscribeTopic = AtelerixRoute(method: "POST", path: "plugin/notifications/subscribe-topic")
+    static let unsubscribeTopic = AtelerixRoute(method: "POST", path: "plugin/notifications/unsubscribe-topic")
 }
 
 enum AtelerixBackendError: Error {
@@ -17,17 +23,26 @@ enum AtelerixBackendError: Error {
     case invalidResponse
 }
 
-/// Backend API wrapper — mirrors `AtelerixBackend`/`AtelerixHelper` in the
-/// Flutter SDK. Every request carries the `atelerix-key` header
-/// automatically; callers only supply the route, body, and any extra
-/// headers (e.g. `app-user`).
+/// Backend error envelope. The gateway in front of `api.atelerix.dev`
+/// proxies the real backend's response body as-is but does NOT propagate
+/// its HTTP status — a logical failure can still arrive wrapped in a 200/201.
+/// The only reliable failure signal is an `error` key in the JSON body, so
+/// that's what `AtelerixBackend` checks instead of the transport status.
+enum AtelerixApiError: Error {
+    case server(code: String, message: String)
+}
+
+/// HTTP client — mirrors `AtelerixBackend`/`AtelerixHelper` in the Flutter
+/// SDK. Every request carries the `atelerix-key` header and is scoped under
+/// `/{projectId}/...` automatically; callers only supply the route, body,
+/// and any extra headers (e.g. `app-user`).
 enum AtelerixBackend {
     static func get(
         route: AtelerixRoute,
         headers: [String: String] = [:],
         queryItems: [URLQueryItem] = []
     ) async throws -> [String: Any]? {
-        try await request(method: "GET", route: route, headers: headers, queryItems: queryItems, body: nil)
+        try await request(route: route, headers: headers, queryItems: queryItems, body: nil)
     }
 
     static func post(
@@ -35,32 +50,31 @@ enum AtelerixBackend {
         data: [String: Any] = [:],
         headers: [String: String] = [:]
     ) async throws -> [String: Any]? {
-        try await request(method: "POST", route: route, headers: headers, queryItems: [], body: data)
+        try await request(route: route, headers: headers, queryItems: [], body: data)
     }
 
     static func delete(
         route: AtelerixRoute,
         headers: [String: String] = [:]
     ) async throws -> [String: Any]? {
-        try await request(method: "DELETE", route: route, headers: headers, queryItems: [], body: nil)
+        try await request(route: route, headers: headers, queryItems: [], body: nil)
     }
 
     private static func request(
-        method: String,
         route: AtelerixRoute,
         headers: [String: String],
         queryItems: [URLQueryItem],
         body: [String: Any]?
     ) async throws -> [String: Any]? {
         let keys = AtelerixKeys.shared
-        guard var components = URLComponents(string: keys.url + route.rawValue) else {
+        guard var components = URLComponents(string: "\(keys.url)/\(keys.projectId)/\(route.path)") else {
             throw AtelerixBackendError.invalidURL
         }
         if !queryItems.isEmpty { components.queryItems = queryItems }
         guard let url = components.url else { throw AtelerixBackendError.invalidURL }
 
         var request = URLRequest(url: url)
-        request.httpMethod = method
+        request.httpMethod = route.method
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue("application/json", forHTTPHeaderField: "accept")
         request.setValue(keys.apiKey, forHTTPHeaderField: "atelerix-key")
@@ -73,7 +87,7 @@ enum AtelerixBackend {
         }
 
         if keys.debug {
-            print("[Atelerix] → \(method) \(url)")
+            print("[Atelerix] → \(route.method) \(url)")
         }
 
         let (data, response) = try await Self.data(for: request)
@@ -85,10 +99,13 @@ enum AtelerixBackend {
 
         let json = data.isEmpty ? nil : try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
-        guard (200...299).contains(status) else {
-            let code = (json?["error"] as? String) ?? String(status)
+        if let errorCode = json?["error"] as? String {
             let message = (json?["message"] as? String) ?? "Request failed"
-            throw AtelerixApiError.server(code: code, message: message)
+            throw AtelerixApiError.server(code: errorCode, message: message)
+        }
+
+        guard (200...299).contains(status) else {
+            throw AtelerixApiError.server(code: String(status), message: "Request failed")
         }
 
         return json

@@ -7,8 +7,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
         Atelerix.initialize(
-            apiKey: "example-api-key",
-            projectId: "example-project-id",
+            apiKey: "6141d7ec-6860-414e-bd5f-96a056698be5",
+            projectId: "u2ip-111-2esw",
             debugMode: true
         )
         return true

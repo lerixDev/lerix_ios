@@ -9,7 +9,7 @@ public enum Atelerix {
     public static func initialize(
         apiKey: String,
         projectId: String,
-        url: String = "https://api.atelerix.dev",
+        url: String = "https://api.atelerix.dev/v1",
         debugMode: Bool = false,
         onError: ((Error) -> Void)? = nil
     ) {
@@ -23,7 +23,7 @@ public enum Atelerix {
 
         Task {
             do {
-                _ = try await AtelerixInit.registerApp(projectId: projectId)
+                _ = try await AtelerixInit.ping()
                 _ = try await AtelerixInit.registerUser()
             } catch {
                 if debugMode { print("[Atelerix] Initialization failed: \(error)") }

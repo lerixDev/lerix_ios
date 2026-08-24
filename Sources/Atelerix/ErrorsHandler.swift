@@ -3,7 +3,7 @@ import Foundation
 /// Reports errors/crashes to the backend — mirrors `errors_handler.dart`'s
 /// `ErrorsHandler`, including the retry-on-"user not registered" logic.
 enum ErrorsHandler {
-    private static let userNotRegisteredCode = "5006"
+    private static let userNotRegisteredCode = "USER_PROJECT_NOT_EXIST"
     private static let maxRetryAttempts = 3
 
     static func throwError(
@@ -62,10 +62,4 @@ enum ErrorsHandler {
             try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: attempt + 1)
         }
     }
-}
-
-/// Backend error envelope — the API returns `{statusCode, message, error}`
-/// on failure; `error` carries the numeric code used for retry logic (e.g. 5006).
-enum AtelerixApiError: Error {
-    case server(code: String, message: String)
 }

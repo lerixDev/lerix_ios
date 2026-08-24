@@ -6,7 +6,7 @@ final class AtelerixKeys {
     static let shared = AtelerixKeys()
     private init() {}
 
-    var url: String = "https://api.atelerix.dev"
+    var url: String = "https://api.atelerix.dev/v1"
     var apiKey: String = ""
     var projectId: String = ""
     var debug: Bool = false

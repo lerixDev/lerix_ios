@@ -46,19 +46,24 @@ struct AtelerixApp: Codable {
     var buildNo: String?
 }
 
-/// The stored result of `/plugin/init/ping` — mirrors `PingModel`.
+/// The `data` payload of a `/plugin/init/ping` response — mirrors `PingModel`.
+/// `id` is the backend's UUID for this app record (not the bundle id sent in
+/// the `appid` header) — it's what `register-user`'s `projectApp` field and
+/// notification calls' `appId` field actually reference.
 struct AtelerixPingConfig: Codable {
     var id: String?
     var appId: String?
-    var projectSlug: String?
     var platform: String?
+    var os: String?
+    var projectSlug: String?
     var status: String?
 
     enum CodingKeys: String, CodingKey {
         case id
         case appId = "appID"
-        case projectSlug
         case platform
+        case os
+        case projectSlug
         case status
     }
 }

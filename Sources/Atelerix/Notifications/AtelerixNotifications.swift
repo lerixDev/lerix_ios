@@ -109,22 +109,30 @@ public final class AtelerixNotifications: NSObject {
     }
 
     public func subscribeToTopic(_ topic: String) async throws {
-        guard let token = getDeviceToken() else { return }
-        _ = try await AtelerixBackend.post(route: .subscribeTopic, data: ["token": token, "topic": topic])
+        let body = try await topicBody(topic: topic)
+        _ = try await AtelerixBackend.post(route: .subscribeTopic, data: body)
     }
 
     public func unsubscribeFromTopic(_ topic: String) async throws {
-        guard let token = getDeviceToken() else { return }
-        _ = try await AtelerixBackend.post(route: .unsubscribeTopic, data: ["token": token, "topic": topic])
+        let body = try await topicBody(topic: topic)
+        _ = try await AtelerixBackend.post(route: .unsubscribeTopic, data: body)
+    }
+
+    private func topicBody(topic: String) async throws -> [String: Any] {
+        guard let token = getDeviceToken(), let userId = AtelerixInit.existingUserId() else {
+            throw AtelerixBackendError.invalidResponse
+        }
+        let config = try await AtelerixInit.cachedOrFreshPingConfig()
+        return ["userId": userId, "appId": config.id ?? "", "token": token, "topicKey": topic]
     }
 
     private func registerTokenWithBackend(token: String) async throws {
-        var headers: [String: String] = [:]
-        if let userId = AtelerixInit.existingUserId() { headers["app-user"] = userId }
+        guard let userId = AtelerixInit.existingUserId() else { return }
+        let config = try await AtelerixInit.cachedOrFreshPingConfig()
         _ = try await AtelerixBackend.post(
-            route: .registerNotification,
-            data: ["token": token, "platform": "ios"],
-            headers: headers
+            route: .registerToken,
+            data: ["userId": userId, "appId": config.id ?? "", "token": token],
+            headers: ["app-user": userId]
         )
     }
 
