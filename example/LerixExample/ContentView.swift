@@ -6,15 +6,21 @@ struct ContentView: View {
     @State private var status = "Not requested"
     @State private var userId: String? = nil
     @State private var deviceId: String = ""
+    @State private var notificationTokenId: String? = nil
     @State private var lastAction = ""
 
     var body: some View {
         NavigationView {
             Form {
-                Section("SDK state") {
+                Section {
                     LabeledContent("Permission", value: status)
                     copyableRow(label: "User ID", value: userId)
                     copyableRow(label: "Device ID", value: deviceId)
+                    copyableRow(label: "Notification Token ID", value: notificationTokenId)
+                } header: {
+                    Text("SDK state")
+                } footer: {
+                    Text("To send a test push from the dashboard, copy the Notification Token ID (not the User or Device ID) into its \"device tokens\" field — it only appears after notification permission is granted.")
                 }
 
                 Section("Actions") {
@@ -22,6 +28,11 @@ struct ContentView: View {
                         Task {
                             let granted = await Atelerix.notifications.requestPermissions()
                             status = granted ? "authorized" : "denied"
+                            guard granted else { return }
+                            for _ in 0..<10 where notificationTokenId == nil {
+                                try? await Task.sleep(nanoseconds: 500_000_000)
+                                refresh()
+                            }
                         }
                     }
 
@@ -71,6 +82,7 @@ struct ContentView: View {
     private func refresh() {
         userId = Atelerix.getUserId()
         deviceId = Atelerix.notifications.getDeviceId()
+        notificationTokenId = Atelerix.notifications.getRegisteredTokenId()
     }
 
     @ViewBuilder

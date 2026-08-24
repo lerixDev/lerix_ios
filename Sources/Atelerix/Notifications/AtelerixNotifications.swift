@@ -24,6 +24,7 @@ public final class AtelerixNotifications: NSObject {
     private static var pendingTap: AtelerixNotificationPayload?
 
     private let deviceTokenKey = "atelerix_device_token"
+    private let registeredTokenIdKey = "atelerix_registered_token_id"
 
     /// Call once, from `application(_:didFinishLaunchingWithOptions:)`.
     public func register() {
@@ -106,6 +107,15 @@ public final class AtelerixNotifications: NSObject {
     public func clearToken() {
         AtelerixKeys.shared.deviceToken = nil
         AtelerixKeychain.delete(deviceTokenKey)
+        AtelerixKeychain.delete(registeredTokenIdKey)
+    }
+
+    /// The `notifications_users_tokens.id` row-id the backend assigned when
+    /// this device's token was registered — this, not the user id or the
+    /// vendor device id, is what the dashboard's "send notification"
+    /// feature expects in its `deviceTokens` field.
+    public func getRegisteredTokenId() -> String? {
+        AtelerixKeychain.read(registeredTokenIdKey)
     }
 
     public func subscribeToTopic(_ topic: String) async throws {
@@ -129,11 +139,14 @@ public final class AtelerixNotifications: NSObject {
     private func registerTokenWithBackend(token: String) async throws {
         guard let userId = AtelerixInit.existingUserId() else { return }
         let config = try await AtelerixInit.cachedOrFreshPingConfig()
-        _ = try await AtelerixBackend.post(
+        let response = try await AtelerixBackend.post(
             route: .registerToken,
             data: ["userId": userId, "appId": config.id ?? "", "token": token],
             headers: ["app-user": userId]
         )
+        if let tokenId = response?["id"] as? String {
+            AtelerixKeychain.write(registeredTokenIdKey, value: tokenId)
+        }
     }
 
     /// Handles a silent "remove" push used to revoke a previously delivered
