@@ -30,5 +30,5 @@ targets:
         SWIFT_VERSION: "5.9"
         TARGETED_DEVICE_FAMILY: "1,2"
         CODE_SIGN_STYLE: Automatic
-        CODE_SIGNING_REQUIRED: false
-        CODE_SIGNING_ALLOWED: false
+        DEVELOPMENT_TEAM: 35JR25JDB6
+        CODE_SIGN_ENTITLEMENTS: LerixExample/LerixExample.entitlements
