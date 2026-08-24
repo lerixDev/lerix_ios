@@ -5,9 +5,9 @@ let package = Package(
     name: "lerix_ios",
     platforms: [.iOS(.v13)],
     products: [
-        .library(name: "Atelerix", targets: ["Atelerix"])
+        .library(name: "Lerix", targets: ["Lerix"])
     ],
     targets: [
-        .target(name: "Atelerix", path: "Sources/Atelerix")
+        .target(name: "Lerix", path: "Sources/Lerix")
     ]
 )

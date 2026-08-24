@@ -16,8 +16,8 @@ enum ErrorsHandler {
         do {
             try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: 1)
         } catch {
-            if AtelerixKeys.shared.debug {
-                print("[Atelerix] Failed to report error after retries: \(error)")
+            if LerixKeys.shared.debug {
+                print("[Lerix] Failed to report error after retries: \(error)")
             }
         }
     }
@@ -30,14 +30,14 @@ enum ErrorsHandler {
         metadata: [String: Any]?,
         attempt: Int
     ) async throws {
-        guard let userId = AtelerixInit.existingUserId() else {
-            _ = try await AtelerixInit.registerUser()
+        guard let userId = LerixInit.existingUserId() else {
+            _ = try await LerixInit.registerUser()
             try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: attempt)
             return
         }
 
-        let device = AtelerixDeviceInfo.collectDevice()
-        let app = AtelerixDeviceInfo.collectApp()
+        let device = LerixDeviceInfo.collectDevice()
+        let app = LerixDeviceInfo.collectApp()
 
         var body: [String: Any] = ["issue": issue, "stack": stack]
         if let deviceData = try? JSONEncoder().encode(device), let json = String(data: deviceData, encoding: .utf8) {
@@ -54,11 +54,11 @@ enum ErrorsHandler {
         if let severity = severity { body["severity"] = severity.rawValue }
 
         do {
-            _ = try await AtelerixBackend.post(route: .sendBug, data: body, headers: ["app-user": userId])
-        } catch let AtelerixApiError.server(code, _) where code == userNotRegisteredCode {
-            guard attempt < maxRetryAttempts else { throw AtelerixApiError.server(code: code, message: "user not registered") }
-            try await AtelerixInit.deleteUser()
-            _ = try await AtelerixInit.registerUser()
+            _ = try await LerixBackend.post(route: .sendBug, data: body, headers: ["app-user": userId])
+        } catch let LerixApiError.server(code, _) where code == userNotRegisteredCode {
+            guard attempt < maxRetryAttempts else { throw LerixApiError.server(code: code, message: "user not registered") }
+            try await LerixInit.deleteUser()
+            _ = try await LerixInit.registerUser()
             try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: attempt + 1)
         }
     }

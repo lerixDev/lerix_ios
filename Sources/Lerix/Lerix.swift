@@ -1,9 +1,10 @@
 import Foundation
 
-/// Public entry point for the native iOS SDK — mirrors the top-level
-/// `Atelerix` class in the Flutter SDK (`Atelerix.init`, `Atelerix.throwError`,
-/// `Atelerix.notifications`), for apps with no Flutter involved.
-public enum Atelerix {
+/// Public entry point for the native iOS SDK — `Lerix.initialize`,
+/// `Lerix.throwError`, `Lerix.notifications` — mirroring the Flutter SDK's
+/// top-level `Atelerix` class feature-for-feature, for apps with no Flutter
+/// involved.
+public enum Lerix {
     /// Configure the SDK and register this install with the backend.
     /// Call once, e.g. from `application(_:didFinishLaunchingWithOptions:)`.
     ///
@@ -18,29 +19,29 @@ public enum Atelerix {
         enableCrashReporting: Bool = true,
         onError: ((Error) -> Void)? = nil
     ) {
-        let keys = AtelerixKeys.shared
+        let keys = LerixKeys.shared
         keys.apiKey = apiKey
         keys.projectId = projectId
         keys.url = url
         keys.debug = debugMode
 
-        AtelerixNotifications.shared.register()
+        LerixNotifications.shared.register()
         if enableCrashReporting {
-            AtelerixCrashReporter.install()
+            LerixCrashReporter.install()
         }
 
         Task {
             do {
-                _ = try await AtelerixInit.ping()
+                _ = try await LerixInit.ping()
                 // Registration only needs to happen once per install — the
                 // Keychain-persisted user id survives relaunches, so this
                 // avoids creating a fresh backend user on every launch.
-                if AtelerixInit.existingUserId() == nil {
-                    _ = try await AtelerixInit.registerUser()
+                if LerixInit.existingUserId() == nil {
+                    _ = try await LerixInit.registerUser()
                 }
-                await AtelerixCrashReporter.reportPendingCrashIfAny()
+                await LerixCrashReporter.reportPendingCrashIfAny()
             } catch {
-                if debugMode { print("[Atelerix] Initialization failed: \(error)") }
+                if debugMode { print("[Lerix] Initialization failed: \(error)") }
                 onError?(error)
             }
         }
@@ -59,22 +60,22 @@ public enum Atelerix {
         }
     }
 
-    public static var notifications: AtelerixNotifications { AtelerixNotifications.shared }
+    public static var notifications: LerixNotifications { LerixNotifications.shared }
 
     public static func getUserId() -> String? {
-        AtelerixInit.existingUserId()
+        LerixInit.existingUserId()
     }
 
     public static func isUserRegistered() -> Bool {
-        AtelerixInit.existingUserId() != nil
+        LerixInit.existingUserId() != nil
     }
 
     public static func deleteUser() async throws {
-        try await AtelerixInit.deleteUser()
+        try await LerixInit.deleteUser()
     }
 
     public static func reRegisterUser() async throws {
-        try await AtelerixInit.deleteUser()
-        _ = try await AtelerixInit.registerUser()
+        try await LerixInit.deleteUser()
+        _ = try await LerixInit.registerUser()
     }
 }

@@ -4,9 +4,9 @@ import Foundation
 /// call: it registers this app under the project the first time it's called
 /// for a given bundle id + OS, and just looks it up on every call after.
 /// `registerUser` then creates a local user scoped to that app record.
-enum AtelerixInit {
-    private static let userIdKey = "atelerix_user_id"
-    private static let pingConfigKey = "atelerix_ping_config"
+enum LerixInit {
+    private static let userIdKey = "lerix_user_id"
+    private static let pingConfigKey = "lerix_ping_config"
 
     /// Registers (or looks up) this app under the project. The returned
     /// `id` is the backend's UUID for the app record — NOT the bundle id
@@ -14,11 +14,11 @@ enum AtelerixInit {
     /// `projectApp` field and the notifications routes' `appId` field
     /// reference.
     @discardableResult
-    static func ping() async throws -> AtelerixPingConfig {
-        let app = AtelerixDeviceInfo.collectApp()
+    static func ping() async throws -> LerixPingConfig {
+        let app = LerixDeviceInfo.collectApp()
         let headers: [String: String] = [
             "appid": app.package ?? "unknown",
-            "projectid": AtelerixKeys.shared.projectId,
+            "projectid": LerixKeys.shared.projectId,
             "platform": "ios",
             // Despite the name, the backend's dispatch logic (`deliverToDevice`)
             // checks this field against the literal string "ios" to decide
@@ -29,15 +29,15 @@ enum AtelerixInit {
             "os": "ios",
         ]
 
-        let response = try await AtelerixBackend.get(route: .ping, headers: headers)
+        let response = try await LerixBackend.get(route: .ping, headers: headers)
         guard let data = response?["data"] as? [String: Any] else {
-            throw AtelerixBackendError.invalidResponse
+            throw LerixBackendError.invalidResponse
         }
-        let config = try decode(AtelerixPingConfig.self, from: data)
+        let config = try decode(LerixPingConfig.self, from: data)
 
-        AtelerixKeys.shared.projectConfig = config
+        LerixKeys.shared.projectConfig = config
         if let encoded = try? JSONEncoder().encode(config), let json = String(data: encoded, encoding: .utf8) {
-            AtelerixKeychain.write(pingConfigKey, value: json)
+            LerixKeychain.write(pingConfigKey, value: json)
         }
         return config
     }
@@ -47,46 +47,46 @@ enum AtelerixInit {
     @discardableResult
     static func registerUser() async throws -> String {
         let config = try await cachedOrFreshPingConfig()
-        let app = AtelerixDeviceInfo.collectApp()
+        let app = LerixDeviceInfo.collectApp()
 
         let body: [String: Any] = [
-            "projectSlug": AtelerixKeys.shared.projectId,
+            "projectSlug": LerixKeys.shared.projectId,
             "projectApp": config.id ?? "",
             "version": app.version ?? "0.0.0",
         ]
 
-        let response = try await AtelerixBackend.post(route: .registerUser, data: body)
+        let response = try await LerixBackend.post(route: .registerUser, data: body)
         guard let userId = response?["user"] as? String else {
-            throw AtelerixBackendError.invalidResponse
+            throw LerixBackendError.invalidResponse
         }
 
-        AtelerixKeychain.write(userIdKey, value: userId)
-        AtelerixKeys.shared.projectUser = userId
+        LerixKeychain.write(userIdKey, value: userId)
+        LerixKeys.shared.projectUser = userId
         return userId
     }
 
     static func deleteUser() async throws {
-        guard let userId = AtelerixKeys.shared.projectUser ?? existingUserId() else { return }
-        _ = try await AtelerixBackend.delete(route: .deleteUser, headers: ["app-user": userId])
-        AtelerixKeychain.delete(userIdKey)
-        AtelerixKeys.shared.projectUser = nil
+        guard let userId = LerixKeys.shared.projectUser ?? existingUserId() else { return }
+        _ = try await LerixBackend.delete(route: .deleteUser, headers: ["app-user": userId])
+        LerixKeychain.delete(userIdKey)
+        LerixKeys.shared.projectUser = nil
     }
 
     static func existingUserId() -> String? {
-        if let cached = AtelerixKeys.shared.projectUser { return cached }
-        let stored = AtelerixKeychain.read(userIdKey)
-        AtelerixKeys.shared.projectUser = stored
+        if let cached = LerixKeys.shared.projectUser { return cached }
+        let stored = LerixKeychain.read(userIdKey)
+        LerixKeys.shared.projectUser = stored
         return stored
     }
 
     /// The app record's backend UUID, needed by `registerUser` and the
     /// notifications routes — cached in memory/Keychain, refreshed via a
     /// fresh `ping()` call if neither has it.
-    static func cachedOrFreshPingConfig() async throws -> AtelerixPingConfig {
-        if let cached = AtelerixKeys.shared.projectConfig { return cached }
-        if let raw = AtelerixKeychain.read(pingConfigKey), let data = raw.data(using: .utf8),
-           let stored = try? JSONDecoder().decode(AtelerixPingConfig.self, from: data) {
-            AtelerixKeys.shared.projectConfig = stored
+    static func cachedOrFreshPingConfig() async throws -> LerixPingConfig {
+        if let cached = LerixKeys.shared.projectConfig { return cached }
+        if let raw = LerixKeychain.read(pingConfigKey), let data = raw.data(using: .utf8),
+           let stored = try? JSONDecoder().decode(LerixPingConfig.self, from: data) {
+            LerixKeys.shared.projectConfig = stored
             return stored
         }
         return try await ping()

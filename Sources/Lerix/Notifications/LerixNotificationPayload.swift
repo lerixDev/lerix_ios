@@ -2,7 +2,7 @@ import Foundation
 
 /// The payload handed to `onNotificationReceived`/`onNotificationTapped` —
 /// mirrors the Flutter SDK's notification payload model.
-public struct AtelerixNotificationPayload {
+public struct LerixNotificationPayload {
     public let notificationId: String?
     public let title: String?
     public let body: String?

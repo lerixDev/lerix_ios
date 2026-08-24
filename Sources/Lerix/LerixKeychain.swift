@@ -4,8 +4,8 @@ import Security
 /// Minimal Keychain-backed key/value storage — the same role
 /// `flutter_secure_storage` plays in the Flutter SDK, without pulling in a
 /// third-party dependency for it.
-enum AtelerixKeychain {
-    private static let service = "com.atelerix.sdk"
+enum LerixKeychain {
+    private static let service = "com.lerix.sdk"
 
     static func read(_ key: String) -> String? {
         var query = baseQuery(for: key)

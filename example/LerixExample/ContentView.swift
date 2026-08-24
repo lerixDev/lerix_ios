@@ -1,6 +1,6 @@
 import SwiftUI
 import UIKit
-import Atelerix
+import Lerix
 
 struct ContentView: View {
     @State private var status = "Not requested"
@@ -33,7 +33,7 @@ struct ContentView: View {
                 Section("Actions") {
                     Button("Request notification permission") {
                         Task {
-                            let granted = await Atelerix.notifications.requestPermissions()
+                            let granted = await Lerix.notifications.requestPermissions()
                             status = granted ? "authorized" : "denied"
                             guard granted else { return }
                             for _ in 0..<10 where notificationTokenId == nil {
@@ -45,13 +45,13 @@ struct ContentView: View {
 
                     Button("Check permission status") {
                         Task {
-                            let result = await Atelerix.notifications.checkPermissionStatus()
+                            let result = await Lerix.notifications.checkPermissionStatus()
                             status = result.rawValue
                         }
                     }
 
                     Button("Throw test error") {
-                        Atelerix.throwError(
+                        Lerix.throwError(
                             "Example button tapped: simulated error",
                             stack: Thread.callStackSymbols,
                             type: .runtimeError,
@@ -62,14 +62,14 @@ struct ContentView: View {
 
                     Button("Re-register user") {
                         Task {
-                            try? await Atelerix.reRegisterUser()
+                            try? await Lerix.reRegisterUser()
                             refresh()
                             lastAction = "Re-registered user"
                         }
                     }
 
                     Button("Trigger native crash", role: .destructive) {
-                        // AtelerixCrashReporter persists this to disk
+                        // LerixCrashReporter persists this to disk
                         // synchronously and reports it automatically on the
                         // next launch — relaunch the app after this to see
                         // it show up as a reported error.
@@ -87,12 +87,12 @@ struct ContentView: View {
             .navigationTitle("Lerix iOS Example")
             .onAppear(perform: refresh)
             .task {
-                Atelerix.notifications.setOnNotificationReceived { payload in
+                Lerix.notifications.setOnNotificationReceived { payload in
                     Task { @MainActor in
                         lastReceived = describe(payload)
                     }
                 }
-                Atelerix.notifications.setOnNotificationTapped { payload in
+                Lerix.notifications.setOnNotificationTapped { payload in
                     Task { @MainActor in
                         lastTapped = describe(payload)
                     }
@@ -107,12 +107,12 @@ struct ContentView: View {
     }
 
     private func refresh() {
-        userId = Atelerix.getUserId()
-        deviceId = Atelerix.notifications.getDeviceId()
-        notificationTokenId = Atelerix.notifications.getRegisteredTokenId()
+        userId = Lerix.getUserId()
+        deviceId = Lerix.notifications.getDeviceId()
+        notificationTokenId = Lerix.notifications.getRegisteredTokenId()
     }
 
-    private func describe(_ payload: AtelerixNotificationPayload) -> String {
+    private func describe(_ payload: LerixNotificationPayload) -> String {
         "\(payload.title ?? "(no title)") — \(payload.body ?? "")"
     }
 

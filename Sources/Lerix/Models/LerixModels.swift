@@ -28,7 +28,7 @@ public enum BugSeverity: String {
 /// Device metadata attached to every error report — mirrors the Flutter
 /// SDK's `Device` model exactly (same JSON keys), collected from
 /// `UIDevice`/`Locale`/`TimeZone` instead of a platform channel.
-struct AtelerixDevice: Codable {
+struct LerixDevice: Codable {
     var deviceName: String?
     var arc: String?
     var osName: String?
@@ -39,7 +39,7 @@ struct AtelerixDevice: Codable {
 
 /// App metadata attached to every error report — mirrors the Flutter SDK's
 /// `App` model, collected from `Bundle.main` instead of `package_info_plus`.
-struct AtelerixApp: Codable {
+struct LerixApp: Codable {
     var name: String?
     var package: String?
     var version: String?
@@ -50,7 +50,7 @@ struct AtelerixApp: Codable {
 /// `id` is the backend's UUID for this app record (not the bundle id sent in
 /// the `appid` header) — it's what `register-user`'s `projectApp` field and
 /// notification calls' `appId` field actually reference.
-struct AtelerixPingConfig: Codable {
+struct LerixPingConfig: Codable {
     var id: String?
     var appId: String?
     var platform: String?

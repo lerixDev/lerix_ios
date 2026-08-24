@@ -1,4 +1,4 @@
-# Atelerix (native iOS / Swift)
+# Lerix (native iOS / Swift)
 
 Native Swift Package Manager SDK for iOS apps with no Flutter involved —
 feature parity with the `atelerix` Flutter plugin: app/device registration,
@@ -21,13 +21,13 @@ dependencies: [
 ### 1. Initialize
 
 ```swift
-import Atelerix
+import Lerix
 
 func application(
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
 ) -> Bool {
-    Atelerix.initialize(
+    Lerix.initialize(
         apiKey: "YOUR_PROJECT_API_KEY",
         projectId: "YOUR_PROJECT_ID",
         debugMode: true
@@ -43,7 +43,7 @@ func application(
     _ application: UIApplication,
     didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
 ) {
-    Atelerix.notifications.setDeviceToken(deviceToken)
+    Lerix.notifications.setDeviceToken(deviceToken)
 }
 
 func application(
@@ -51,7 +51,7 @@ func application(
     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
 ) {
-    Atelerix.notifications.handleRemoteNotification(userInfo: userInfo)
+    Lerix.notifications.handleRemoteNotification(userInfo: userInfo)
     completionHandler(.newData)
 }
 ```
@@ -60,14 +60,14 @@ func application(
 
 ```swift
 Task {
-    let granted = await Atelerix.notifications.requestPermissions()
+    let granted = await Lerix.notifications.requestPermissions()
 }
 
-Atelerix.notifications.setOnNotificationTapped { payload in
+Lerix.notifications.setOnNotificationTapped { payload in
     // navigate based on payload.notificationId / payload.metadata
 }
 
-Atelerix.notifications.setOnNotificationReceived { payload in
+Lerix.notifications.setOnNotificationReceived { payload in
     // foreground banner already shown by the SDK; use this for custom UI state
 }
 ```
@@ -75,7 +75,7 @@ Atelerix.notifications.setOnNotificationReceived { payload in
 ### 4. Report errors
 
 ```swift
-Atelerix.throwError(
+Lerix.throwError(
     "Something went wrong",
     stack: Thread.callStackSymbols,
     type: .runtimeError,
@@ -84,7 +84,7 @@ Atelerix.throwError(
 ```
 
 Uncaught exceptions and fatal signals (force-unwraps, array out-of-bounds,
-etc.) are reported automatically — `Atelerix.initialize()` installs a crash
+etc.) are reported automatically — `Lerix.initialize()` installs a crash
 handler by default (pass `enableCrashReporting: false` to opt out). A crash
 can't do async network I/O, so it's persisted to disk and reported on the
 *next* launch, tagged `type: .crash, severity: .critical`.
@@ -93,7 +93,7 @@ can't do async network I/O, so it's persisted to disk and reported on the
 
 APNs has no native "image" field — add a **Notification Service Extension**
 target to your app and copy `NotificationServiceExtension/NotificationService.swift`
-into it. The Atelerix backend sets `mutable-content` automatically whenever a
+into it. The backend sets `mutable-content` automatically whenever a
 notification has an `imageUrl`, which triggers this extension to download and
 attach the image before display.
 
@@ -106,7 +106,7 @@ attach the image before display.
 
 ## Notes
 
-- Device/user identity is persisted in the Keychain (`AtelerixKeychain`), not
+- Device/user identity is persisted in the Keychain (`LerixKeychain`), not
   `UserDefaults`, so it survives reinstalls the same way the Flutter SDK's
   `flutter_secure_storage`-backed storage does.
 - Backend routes and payload shapes are identical to the Flutter/Web SDKs —

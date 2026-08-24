@@ -1,18 +1,18 @@
 import UserNotifications
 
-/// Downloads and attaches the `imageUrl` Atelerix sent, so the rich
+/// Downloads and attaches the `imageUrl` Lerix sent, so the rich
 /// notification image actually shows up on iOS.
 ///
 /// APNs has no native "image" field the way FCM does — this is the only
 /// mechanism: the main app's `aps.mutable-content` flag (set automatically by
-/// the Atelerix backend whenever `imageUrl` is present) tells iOS to launch
-/// this extension before displaying the notification, giving it a chance to
+/// the backend whenever `imageUrl` is present) tells iOS to launch this
+/// extension before displaying the notification, giving it a chance to
 /// download the image and attach it as a `UNNotificationAttachment`.
 ///
-/// This file can't be added to your app automatically — a Flutter plugin
-/// can't create a new Xcode target for you. Copy it into a Notification
-/// Service Extension target you add yourself; see the push notifications
-/// setup guide for the exact steps.
+/// This file can't be added to your app automatically — Swift Package
+/// Manager can't create a new Xcode target for you. Copy it into a
+/// Notification Service Extension target you add yourself; see the push
+/// notifications setup guide for the exact steps.
 class NotificationService: UNNotificationServiceExtension {
     var contentHandler: ((UNNotificationContent) -> Void)?
     var bestAttemptContent: UNMutableNotificationContent?

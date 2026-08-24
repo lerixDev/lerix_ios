@@ -1,12 +1,12 @@
 import UIKit
-import Atelerix
+import Lerix
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
-        Atelerix.initialize(
+        Lerix.initialize(
             apiKey: "6141d7ec-6860-414e-bd5f-96a056698be5",
             projectId: "u2ip-111-2esw",
             debugMode: true
@@ -18,7 +18,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
     ) {
-        Atelerix.notifications.setDeviceToken(deviceToken)
+        Lerix.notifications.setDeviceToken(deviceToken)
     }
 
     func application(
@@ -33,7 +33,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         didReceiveRemoteNotification userInfo: [AnyHashable: Any],
         fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void
     ) {
-        Atelerix.notifications.handleRemoteNotification(userInfo: userInfo)
+        Lerix.notifications.handleRemoteNotification(userInfo: userInfo)
         completionHandler(.newData)
     }
 }

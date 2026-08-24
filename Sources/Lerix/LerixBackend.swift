@@ -2,21 +2,21 @@ import Foundation
 
 /// A backend route — mirrors the `atelerix-api` gateway's controller
 /// paths (`:projectId/plugin/...`). `path` excludes the project slug; it's
-/// prefixed automatically from `AtelerixKeys.shared.projectId`.
-struct AtelerixRoute {
+/// prefixed automatically from `LerixKeys.shared.projectId`.
+struct LerixRoute {
     let method: String
     let path: String
 
-    static let ping = AtelerixRoute(method: "GET", path: "plugin/init/ping")
-    static let registerUser = AtelerixRoute(method: "POST", path: "plugin/init/register-user")
-    static let deleteUser = AtelerixRoute(method: "DELETE", path: "plugin/init/user")
-    static let sendBug = AtelerixRoute(method: "POST", path: "plugin/bugs/create")
-    static let registerToken = AtelerixRoute(method: "POST", path: "plugin/notifications/register-token")
-    static let subscribeTopic = AtelerixRoute(method: "POST", path: "plugin/notifications/subscribe-topic")
-    static let unsubscribeTopic = AtelerixRoute(method: "POST", path: "plugin/notifications/unsubscribe-topic")
+    static let ping = LerixRoute(method: "GET", path: "plugin/init/ping")
+    static let registerUser = LerixRoute(method: "POST", path: "plugin/init/register-user")
+    static let deleteUser = LerixRoute(method: "DELETE", path: "plugin/init/user")
+    static let sendBug = LerixRoute(method: "POST", path: "plugin/bugs/create")
+    static let registerToken = LerixRoute(method: "POST", path: "plugin/notifications/register-token")
+    static let subscribeTopic = LerixRoute(method: "POST", path: "plugin/notifications/subscribe-topic")
+    static let unsubscribeTopic = LerixRoute(method: "POST", path: "plugin/notifications/unsubscribe-topic")
 }
 
-enum AtelerixBackendError: Error {
+enum LerixBackendError: Error {
     case invalidURL
     case invalidResponse
 }
@@ -25,8 +25,8 @@ enum AtelerixBackendError: Error {
 /// proxies the real backend's response body as-is but does NOT propagate
 /// its HTTP status — a logical failure can still arrive wrapped in a 200/201.
 /// The only reliable failure signal is an `error` key in the JSON body, so
-/// that's what `AtelerixBackend` checks instead of the transport status.
-enum AtelerixApiError: Error {
+/// that's what `LerixBackend` checks instead of the transport status.
+enum LerixApiError: Error {
     case server(code: String, message: String)
 }
 
@@ -34,9 +34,9 @@ enum AtelerixApiError: Error {
 /// SDK. Every request carries the `atelerix-key` header and is scoped under
 /// `/{projectId}/...` automatically; callers only supply the route, body,
 /// and any extra headers (e.g. `app-user`).
-enum AtelerixBackend {
+enum LerixBackend {
     static func get(
-        route: AtelerixRoute,
+        route: LerixRoute,
         headers: [String: String] = [:],
         queryItems: [URLQueryItem] = []
     ) async throws -> [String: Any]? {
@@ -44,7 +44,7 @@ enum AtelerixBackend {
     }
 
     static func post(
-        route: AtelerixRoute,
+        route: LerixRoute,
         data: [String: Any] = [:],
         headers: [String: String] = [:]
     ) async throws -> [String: Any]? {
@@ -52,29 +52,30 @@ enum AtelerixBackend {
     }
 
     static func delete(
-        route: AtelerixRoute,
+        route: LerixRoute,
         headers: [String: String] = [:]
     ) async throws -> [String: Any]? {
         try await request(route: route, headers: headers, queryItems: [], body: nil)
     }
 
     private static func request(
-        route: AtelerixRoute,
+        route: LerixRoute,
         headers: [String: String],
         queryItems: [URLQueryItem],
         body: [String: Any]?
     ) async throws -> [String: Any]? {
-        let keys = AtelerixKeys.shared
+        let keys = LerixKeys.shared
         guard var components = URLComponents(string: "\(keys.url)/\(keys.projectId)/\(route.path)") else {
-            throw AtelerixBackendError.invalidURL
+            throw LerixBackendError.invalidURL
         }
         if !queryItems.isEmpty { components.queryItems = queryItems }
-        guard let url = components.url else { throw AtelerixBackendError.invalidURL }
+        guard let url = components.url else { throw LerixBackendError.invalidURL }
 
         var request = URLRequest(url: url)
         request.httpMethod = route.method
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue("application/json", forHTTPHeaderField: "accept")
+        // Header name is mandated by the backend — do not rename.
         request.setValue(keys.apiKey, forHTTPHeaderField: "atelerix-key")
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
@@ -85,25 +86,25 @@ enum AtelerixBackend {
         }
 
         if keys.debug {
-            print("[Atelerix] → \(route.method) \(url)")
+            print("[Lerix] → \(route.method) \(url)")
         }
 
         let (data, response) = try await Self.data(for: request)
 
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         if keys.debug {
-            print("[Atelerix] ← \(status) \(url)")
+            print("[Lerix] ← \(status) \(url)")
         }
 
         let json = data.isEmpty ? nil : try JSONSerialization.jsonObject(with: data) as? [String: Any]
 
         if let errorCode = json?["error"] as? String {
             let message = (json?["message"] as? String) ?? "Request failed"
-            throw AtelerixApiError.server(code: errorCode, message: message)
+            throw LerixApiError.server(code: errorCode, message: message)
         }
 
         guard (200...299).contains(status) else {
-            throw AtelerixApiError.server(code: String(status), message: "Request failed")
+            throw LerixApiError.server(code: String(status), message: "Request failed")
         }
 
         return json
@@ -120,7 +121,7 @@ enum AtelerixBackend {
                     return
                 }
                 guard let data = data, let response = response else {
-                    continuation.resume(throwing: AtelerixBackendError.invalidResponse)
+                    continuation.resume(throwing: LerixBackendError.invalidResponse)
                     return
                 }
                 continuation.resume(returning: (data, response))

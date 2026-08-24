@@ -6,11 +6,11 @@ import UIKit
 /// Collects device/app metadata — mirrors `atelerix_native.dart`/`atelerix_package.dart`,
 /// using `UIDevice`/`Bundle`/`Locale`/`ProcessInfo` instead of platform channels
 /// and `package_info_plus` (this runs natively, no bridge needed).
-enum AtelerixDeviceInfo {
-    static func collectDevice() -> AtelerixDevice {
+enum LerixDeviceInfo {
+    static func collectDevice() -> LerixDevice {
         #if canImport(UIKit)
         let device = UIDevice.current
-        return AtelerixDevice(
+        return LerixDevice(
             deviceName: device.name,
             arc: architecture(),
             osName: device.systemName,
@@ -19,7 +19,7 @@ enum AtelerixDeviceInfo {
             countryCode: Locale.current.regionCode ?? "unknown"
         )
         #else
-        return AtelerixDevice(
+        return LerixDevice(
             deviceName: "unknown",
             arc: architecture(),
             osName: "iOS",
@@ -30,7 +30,7 @@ enum AtelerixDeviceInfo {
         #endif
     }
 
-    static func collectApp() -> AtelerixApp {
+    static func collectApp() -> LerixApp {
         let bundle = Bundle.main
         let info = bundle.infoDictionary
         let appName = (info?["CFBundleDisplayName"] as? String)
@@ -38,7 +38,7 @@ enum AtelerixDeviceInfo {
             ?? "unknown"
         let version = (info?["CFBundleShortVersionString"] as? String) ?? "0.0.0"
         let build = (info?["CFBundleVersion"] as? String) ?? "0"
-        return AtelerixApp(
+        return LerixApp(
             name: appName.isEmpty ? "unknown" : appName,
             package: bundle.bundleIdentifier ?? "unknown",
             version: version.isEmpty ? "0.0.0" : version,

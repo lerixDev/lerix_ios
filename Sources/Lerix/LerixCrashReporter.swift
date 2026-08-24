@@ -8,8 +8,8 @@ import Foundation
 /// A crash handler can't reliably do async network I/O — the process is
 /// terminating — so this only ever does a synchronous file write at crash
 /// time, then reports it normally once the app restarts.
-enum AtelerixCrashReporter {
-    private static let pendingCrashFileName = "atelerix_pending_crash.json"
+enum LerixCrashReporter {
+    private static let pendingCrashFileName = "lerix_pending_crash.json"
     private static let fatalSignals: [Int32] = [SIGABRT, SIGILL, SIGSEGV, SIGFPE, SIGBUS, SIGTRAP]
 
     private static var pendingCrashURL: URL {
@@ -17,25 +17,25 @@ enum AtelerixCrashReporter {
             .appendingPathComponent(pendingCrashFileName)
     }
 
-    /// Call once during `Atelerix.initialize()`. Safe to call more than
-    /// once — later calls are no-ops.
+    /// Call once during `Lerix.initialize()`. Safe to call more than once —
+    /// later calls are no-ops.
     static func install() {
         guard NSGetUncaughtExceptionHandler() == nil else { return }
 
         NSSetUncaughtExceptionHandler { exception in
-            AtelerixCrashReporter.persistCrash(
+            LerixCrashReporter.persistCrash(
                 issue: "\(exception.name.rawValue): \(exception.reason ?? "no reason")",
                 stack: exception.callStackSymbols
             )
         }
 
         for sig in fatalSignals {
-            signal(sig, AtelerixCrashReporter.handleSignal)
+            signal(sig, LerixCrashReporter.handleSignal)
         }
     }
 
     private static let handleSignal: @convention(c) (Int32) -> Void = { sig in
-        AtelerixCrashReporter.persistCrash(
+        LerixCrashReporter.persistCrash(
             issue: "Fatal signal \(sig) (\(String(cString: strsignal(sig))))",
             stack: Thread.callStackSymbols
         )

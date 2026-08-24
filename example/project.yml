@@ -4,7 +4,7 @@ options:
   deploymentTarget:
     iOS: "13.0"
 packages:
-  Atelerix:
+  Lerix:
     path: ..
 targets:
   LerixExample:
@@ -14,8 +14,8 @@ targets:
     sources:
       - LerixExample
     dependencies:
-      - package: Atelerix
-        product: Atelerix
+      - package: Lerix
+        product: Lerix
     info:
       path: LerixExample/Info.plist
       properties:
