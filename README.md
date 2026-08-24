@@ -83,6 +83,12 @@ Atelerix.throwError(
 )
 ```
 
+Uncaught exceptions and fatal signals (force-unwraps, array out-of-bounds,
+etc.) are reported automatically — `Atelerix.initialize()` installs a crash
+handler by default (pass `enableCrashReporting: false` to opt out). A crash
+can't do async network I/O, so it's persisted to disk and reported on the
+*next* launch, tagged `type: .crash, severity: .critical`.
+
 ### 5. Rich notification images (optional)
 
 APNs has no native "image" field — add a **Notification Service Extension**
