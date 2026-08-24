@@ -7,6 +7,8 @@ struct ContentView: View {
     @State private var userId: String? = nil
     @State private var deviceId: String = ""
     @State private var notificationTokenId: String? = nil
+    @State private var lastReceived = "none"
+    @State private var lastTapped = "none"
     @State private var lastAction = ""
 
     var body: some View {
@@ -21,6 +23,11 @@ struct ContentView: View {
                     Text("SDK state")
                 } footer: {
                     Text("To send a test push from the dashboard, copy the Notification Token ID (not the User or Device ID) into its \"device tokens\" field — it only appears after notification permission is granted.")
+                }
+
+                Section("Notification events") {
+                    LabeledContent("Last received (foreground)", value: lastReceived)
+                    LabeledContent("Last tapped", value: lastTapped)
                 }
 
                 Section("Actions") {
@@ -60,6 +67,15 @@ struct ContentView: View {
                             lastAction = "Re-registered user"
                         }
                     }
+
+                    Button("Trigger native crash", role: .destructive) {
+                        // AtelerixCrashReporter persists this to disk
+                        // synchronously and reports it automatically on the
+                        // next launch — relaunch the app after this to see
+                        // it show up as a reported error.
+                        let array = [Int]()
+                        _ = array[5]
+                    }
                 }
 
                 if !lastAction.isEmpty {
@@ -71,6 +87,17 @@ struct ContentView: View {
             .navigationTitle("Lerix iOS Example")
             .onAppear(perform: refresh)
             .task {
+                Atelerix.notifications.setOnNotificationReceived { payload in
+                    Task { @MainActor in
+                        lastReceived = describe(payload)
+                    }
+                }
+                Atelerix.notifications.setOnNotificationTapped { payload in
+                    Task { @MainActor in
+                        lastTapped = describe(payload)
+                    }
+                }
+
                 for _ in 0..<10 where userId == nil {
                     try? await Task.sleep(nanoseconds: 500_000_000)
                     refresh()
@@ -83,6 +110,10 @@ struct ContentView: View {
         userId = Atelerix.getUserId()
         deviceId = Atelerix.notifications.getDeviceId()
         notificationTokenId = Atelerix.notifications.getRegisteredTokenId()
+    }
+
+    private func describe(_ payload: AtelerixNotificationPayload) -> String {
+        "\(payload.title ?? "(no title)") — \(payload.body ?? "")"
     }
 
     @ViewBuilder

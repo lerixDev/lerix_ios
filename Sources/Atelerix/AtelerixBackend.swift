@@ -12,8 +12,6 @@ struct AtelerixRoute {
     static let deleteUser = AtelerixRoute(method: "DELETE", path: "plugin/init/user")
     static let sendBug = AtelerixRoute(method: "POST", path: "plugin/bugs/create")
     static let registerToken = AtelerixRoute(method: "POST", path: "plugin/notifications/register-token")
-    static let senderId = AtelerixRoute(method: "GET", path: "plugin/notifications/sender-id")
-    static let vapidPublicKey = AtelerixRoute(method: "GET", path: "plugin/notifications/vapid-public-key")
     static let subscribeTopic = AtelerixRoute(method: "POST", path: "plugin/notifications/subscribe-topic")
     static let unsubscribeTopic = AtelerixRoute(method: "POST", path: "plugin/notifications/unsubscribe-topic")
 }
