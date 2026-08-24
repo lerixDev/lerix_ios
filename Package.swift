@@ -2,7 +2,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "Atelerix",
+    name: "lerix_ios",
     platforms: [.iOS(.v13)],
     products: [
         .library(name: "Atelerix", targets: ["Atelerix"])

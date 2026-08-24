@@ -12,7 +12,7 @@ at this directory (or a Git URL once published), or add it to
 
 ```swift
 dependencies: [
-    .package(path: "../atelerix_ios")
+    .package(path: "../lerix_ios")
 ]
 ```
 
