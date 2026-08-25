@@ -21,7 +21,7 @@ enum LerixBackendError: Error {
     case invalidResponse
 }
 
-/// Backend error envelope. The gateway in front of `api.atelerix.dev`
+/// Backend error envelope. The gateway in front of `api.lerix.dev`
 /// proxies the real backend's response body as-is but does NOT propagate
 /// its HTTP status — a logical failure can still arrive wrapped in a 200/201.
 /// The only reliable failure signal is an `error` key in the JSON body, so
@@ -30,7 +30,7 @@ enum LerixApiError: Error {
     case server(code: String, message: String)
 }
 
-/// HTTP client — mirrors `AtelerixBackend`/`AtelerixHelper` in the Flutter
+/// HTTP client — mirrors `LerixBackend`/`LerixHelper` in the Flutter
 /// SDK. Every request carries the `atelerix-key` header and is scoped under
 /// `/{projectId}/...` automatically; callers only supply the route, body,
 /// and any extra headers (e.g. `app-user`).

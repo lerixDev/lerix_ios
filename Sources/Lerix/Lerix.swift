@@ -2,7 +2,7 @@ import Foundation
 
 /// Public entry point for the native iOS SDK — `Lerix.initialize`,
 /// `Lerix.throwError`, `Lerix.notifications` — mirroring the Flutter SDK's
-/// top-level `Atelerix` class feature-for-feature, for apps with no Flutter
+/// top-level `Lerix` class feature-for-feature, for apps with no Flutter
 /// involved.
 public enum Lerix {
     /// Configure the SDK and register this install with the backend.
@@ -14,7 +14,7 @@ public enum Lerix {
     public static func initialize(
         apiKey: String,
         projectId: String,
-        url: String = "https://api.atelerix.dev/v1",
+        url: String = "https://api.lerix.dev/v1",
         debugMode: Bool = false,
         enableCrashReporting: Bool = true,
         onError: ((Error) -> Void)? = nil

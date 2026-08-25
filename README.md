@@ -1,7 +1,7 @@
 # Lerix (native iOS / Swift)
 
 Native Swift Package Manager SDK for iOS apps with no Flutter involved —
-feature parity with the `atelerix` Flutter plugin: app/device registration,
+feature parity with the `lerix` Flutter plugin: app/device registration,
 error/crash reporting, and push notifications (APNs).
 
 ## Install
@@ -114,7 +114,7 @@ attach the image before display.
 - iOS 13+
 - `Push Notifications` and `Background Modes → Remote notifications`
   capabilities enabled in your app target
-- An APNs key configured in your Atelerix project settings
+- An APNs key configured in your Lerix project settings
 
 ## Notes
 

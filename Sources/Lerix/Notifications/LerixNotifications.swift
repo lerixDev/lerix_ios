@@ -13,7 +13,7 @@ public enum LerixPermissionStatus: String {
 
 /// Native push-notification manager — mirrors `NotificationsManager`
 /// (io variant) in the Flutter SDK, adapting the existing
-/// `AtelerixPlugin.swift` `UNUserNotificationCenterDelegate` logic without
+/// `LerixPlugin.swift` `UNUserNotificationCenterDelegate` logic without
 /// the Flutter method-channel plumbing.
 public final class LerixNotifications: NSObject {
     public static let shared = LerixNotifications()
@@ -150,7 +150,7 @@ public final class LerixNotifications: NSObject {
     }
 
     /// Handles a silent "remove" push used to revoke a previously delivered
-    /// notification — mirrors `AtelerixPlugin.handleRemoteNotification`.
+    /// notification — mirrors `LerixPlugin.handleRemoteNotification`.
     /// Call from `application(_:didReceiveRemoteNotification:...)`.
     public func handleRemoteNotification(userInfo: [AnyHashable: Any]) {
         guard let command = userInfo["command"] as? String, command == "remove" else { return }
