@@ -6,9 +6,21 @@ error/crash reporting, and push notifications (APNs).
 
 ## Install
 
-Add the package via Xcode: **File → Add Package Dependencies…** and point it
-at this directory (or a Git URL once published), or add it to
+Published on GitHub, resolved directly by Swift Package Manager from tagged
+releases — no separate registry or publishing step required beyond tagging
+a release on GitHub.
+
+Add the package via Xcode: **File → Add Package Dependencies…** and enter
+`https://github.com/lerixDev/lerix-ios`, or add it directly to
 `Package.swift`:
+
+```swift
+dependencies: [
+    .package(url: "https://github.com/lerixDev/lerix-ios", from: "1.0.0")
+]
+```
+
+For local development against this checkout instead, use a path dependency:
 
 ```swift
 dependencies: [
