@@ -31,7 +31,7 @@ enum LerixApiError: Error {
 }
 
 /// HTTP client — mirrors `LerixBackend`/`LerixHelper` in the Flutter
-/// SDK. Every request carries the `atelerix-key` header and is scoped under
+/// SDK. Every request carries the `lerix-key` header and is scoped under
 /// `/{projectId}/...` automatically; callers only supply the route, body,
 /// and any extra headers (e.g. `app-user`).
 enum LerixBackend {
@@ -76,7 +76,7 @@ enum LerixBackend {
         request.setValue("application/json", forHTTPHeaderField: "content-type")
         request.setValue("application/json", forHTTPHeaderField: "accept")
         // Header name is mandated by the backend — do not rename.
-        request.setValue(keys.apiKey, forHTTPHeaderField: "atelerix-key")
+        request.setValue(keys.apiKey, forHTTPHeaderField: "lerix-key")
         for (key, value) in headers {
             request.setValue(value, forHTTPHeaderField: key)
         }

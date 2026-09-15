@@ -6,17 +6,18 @@ error/crash reporting, and push notifications (APNs).
 
 ## Install
 
-Published on GitHub, resolved directly by Swift Package Manager from tagged
-releases — no separate registry or publishing step required beyond tagging
-a release on GitHub.
+### Swift Package Manager
+
+Published on GitHub and resolved directly by Swift Package Manager from tagged
+releases.
 
 Add the package via Xcode: **File → Add Package Dependencies…** and enter
-`https://github.com/lerixDev/lerix-ios`, or add it directly to
+`https://github.com/lerixDev/lerix_ios`, or add it directly to
 `Package.swift`:
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/lerixDev/lerix-ios", from: "1.0.0")
+    .package(url: "https://github.com/lerixDev/lerix_ios", from: "1.0.0")
 ]
 ```
 
@@ -27,6 +28,14 @@ dependencies: [
     .package(path: "../lerix_ios")
 ]
 ```
+
+### CocoaPods
+
+```ruby
+pod 'Lerix', '~> 1.0'
+```
+
+Then run `pod install` and open the `.xcworkspace`.
 
 ## Setup
 
