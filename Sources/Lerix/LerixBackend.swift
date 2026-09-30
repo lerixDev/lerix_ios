@@ -10,6 +10,8 @@ struct LerixRoute {
     static let ping = LerixRoute(method: "GET", path: "plugin/init/ping")
     static let registerUser = LerixRoute(method: "POST", path: "plugin/init/register-user")
     static let deleteUser = LerixRoute(method: "DELETE", path: "plugin/init/user")
+    static let identify = LerixRoute(method: "POST", path: "plugin/init/identify")
+    static let logout = LerixRoute(method: "POST", path: "plugin/init/logout")
     static let sendBug = LerixRoute(method: "POST", path: "plugin/bugs/create")
     static let registerToken = LerixRoute(method: "POST", path: "plugin/notifications/register-token")
     static let subscribeTopic = LerixRoute(method: "POST", path: "plugin/notifications/subscribe-topic")

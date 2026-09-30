@@ -38,6 +38,9 @@ public enum Lerix {
                 // avoids creating a fresh backend user on every launch.
                 if LerixInit.existingUserId() == nil {
                     _ = try await LerixInit.registerUser()
+                } else {
+                    // Sends a `setUser` id that was queued or failed earlier.
+                    await LerixInit.syncIdentityQuietly()
                 }
                 await LerixCrashReporter.reportPendingCrashIfAny()
             } catch {
@@ -72,6 +75,28 @@ public enum Lerix {
 
     public static func deleteUser() async throws {
         try await LerixInit.deleteUser()
+    }
+
+    /// Links this install to your app's own user id — call after login.
+    ///
+    /// Your backend can then target all of this user's devices with
+    /// `externalUserIds` when sending notifications. If the project requires
+    /// identity verification, pass `identityHash`: the hex HMAC-SHA256 of
+    /// `externalId` keyed with the project's identity secret, computed on
+    /// your server. Never ship the identity secret in the app.
+    ///
+    /// The id is stored in the Keychain and re-sent automatically whenever
+    /// this install gets a new Lerix user id. Called before `initialize` has
+    /// registered the install, it is queued and sent once registration
+    /// completes. Throws if the backend rejects it (e.g. an invalid hash).
+    public static func setUser(_ externalId: String, identityHash: String? = nil) async throws {
+        try await LerixInit.setUser(externalId, identityHash: identityHash)
+    }
+
+    /// Unlinks this install from your app's user — call on logout. The
+    /// install id from `getUserId()` is kept.
+    public static func clearUser() async throws {
+        try await LerixInit.clearUser()
     }
 
     public static func reRegisterUser() async throws {

@@ -19,11 +19,12 @@ enum LerixDeviceInfo {
             countryCode: Locale.current.regionCode ?? "unknown"
         )
         #else
+        let version = ProcessInfo.processInfo.operatingSystemVersion
         return LerixDevice(
-            deviceName: "unknown",
+            deviceName: Host.current().localizedName ?? "unknown",
             arc: architecture(),
-            osName: "iOS",
-            osVersion: "unknown",
+            osName: "macOS",
+            osVersion: "\(version.majorVersion).\(version.minorVersion).\(version.patchVersion)",
             timeZone: TimeZone.current.identifier,
             countryCode: Locale.current.regionCode ?? "unknown"
         )

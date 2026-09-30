@@ -2,6 +2,8 @@ import Foundation
 import UserNotifications
 #if canImport(UIKit)
 import UIKit
+#elseif canImport(AppKit)
+import AppKit
 #endif
 
 public enum LerixPermissionStatus: String {
@@ -56,6 +58,8 @@ public final class LerixNotifications: NSObject {
                 .requestAuthorization(options: [.alert, .badge, .sound])
             #if canImport(UIKit)
             await MainActor.run { UIApplication.shared.registerForRemoteNotifications() }
+            #elseif canImport(AppKit)
+            await MainActor.run { NSApplication.shared.registerForRemoteNotifications() }
             #endif
             return granted
         } catch {
