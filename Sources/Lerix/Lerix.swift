@@ -11,12 +11,23 @@ public enum Lerix {
     /// Pass `enableCrashReporting: false` to skip installing the uncaught
     /// exception/signal handlers (e.g. if your app already has its own
     /// crash reporter and you only want manual `throwError` calls).
+    ///
+    /// Error filtering (applied to every report, including crashes reported
+    /// on the next launch):
+    /// - `ignoreErrors`: drop an error if any entry is a case-insensitive
+    ///   substring of its message.
+    /// - `ignoreErrorPatterns`: drop an error if any regex matches its message.
+    /// - `beforeSend`: called after the ignore lists, right before sending;
+    ///   return the (optionally modified) event to send it, or `nil` to drop it.
     public static func initialize(
         apiKey: String,
         projectId: String,
         url: String = "https://api.lerix.dev/v1",
         debugMode: Bool = false,
         enableCrashReporting: Bool = true,
+        ignoreErrors: [String] = [],
+        ignoreErrorPatterns: [NSRegularExpression] = [],
+        beforeSend: ((LerixErrorEvent) -> LerixErrorEvent?)? = nil,
         onError: ((Error) -> Void)? = nil
     ) {
         let keys = LerixKeys.shared
@@ -24,6 +35,9 @@ public enum Lerix {
         keys.projectId = projectId
         keys.url = url
         keys.debug = debugMode
+        keys.ignoreErrors = ignoreErrors
+        keys.ignoreErrorPatterns = ignoreErrorPatterns
+        keys.beforeSend = beforeSend
 
         LerixNotifications.shared.register()
         if enableCrashReporting {

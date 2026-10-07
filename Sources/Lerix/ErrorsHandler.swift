@@ -13,8 +13,29 @@ enum ErrorsHandler {
         severity: BugSeverity? = nil,
         metadata: [String: Any]? = nil
     ) async {
+        // Every report — manual or a crash persisted on a previous run —
+        // passes through here, so this is the one place filtering happens.
+        let keys = LerixKeys.shared
+        let candidate = LerixErrorEvent(message: issue, stack: stack, type: type, severity: severity, metadata: metadata)
+        guard let event = LerixErrorFilter.apply(
+            candidate,
+            ignoreErrors: keys.ignoreErrors,
+            ignoreErrorPatterns: keys.ignoreErrorPatterns,
+            beforeSend: keys.beforeSend
+        ) else {
+            if keys.debug { print("[Lerix] Error dropped by ignoreErrors/beforeSend: \(issue)") }
+            return
+        }
+
         do {
-            try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: 1)
+            try await send(
+                issue: event.message,
+                stack: event.stack,
+                type: event.type,
+                severity: event.severity,
+                metadata: event.metadata,
+                attempt: 1
+            )
         } catch {
             if LerixKeys.shared.debug {
                 print("[Lerix] Failed to report error after retries: \(error)")

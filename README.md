@@ -17,7 +17,7 @@ Add the package via Xcode: **File → Add Package Dependencies…** and enter
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/lerixDev/lerix_ios", from: "1.1.0")
+    .package(url: "https://github.com/lerixDev/lerix_ios", from: "1.2.0")
 ]
 ```
 
@@ -109,6 +109,35 @@ etc.) are reported automatically — `Lerix.initialize()` installs a crash
 handler by default (pass `enableCrashReporting: false` to opt out). A crash
 can't do async network I/O, so it's persisted to disk and reported on the
 *next* launch, tagged `type: .crash, severity: .critical`.
+
+### Filtering errors
+
+Drop or rewrite error reports on the device before they are sent. Filtering
+runs on every report: manual `throwError` calls and crashes reported on the
+next launch.
+
+```swift
+Lerix.initialize(
+    apiKey: "<project api key>",
+    projectId: "<project slug>",
+    // Dropped if any entry is a case-insensitive substring of the message.
+    ignoreErrors: ["The network connection was lost"],
+    // Dropped if any regex matches anywhere in the message.
+    ignoreErrorPatterns: [try! NSRegularExpression(pattern: "^NSURLErrorDomain -10\\d{2}")],
+    // Runs after the ignore lists, right before sending. Return the
+    // (optionally modified) event to send it, or nil to drop it.
+    beforeSend: { event in
+        var event = event
+        event.message = event.message.replacingOccurrences(of: "secret", with: "[redacted]")
+        if event.severity == .low { return nil }
+        return event
+    }
+)
+```
+
+`LerixErrorEvent` exposes `message`, `stack`, `type`, `severity` and
+`metadata`, all mutable. The SDK ships no default ignore patterns; common
+noise is filtered on the server.
 
 ### 5. Rich notification images (optional)
 
