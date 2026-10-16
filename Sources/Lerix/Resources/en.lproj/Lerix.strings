@@ -1,0 +1,66 @@
+/* Lerix SDK UI strings (English). Override any key with Lerix.ui.setStrings(_:locale:). */
+
+"common.next" = "Next";
+"common.back" = "Back";
+"common.close" = "Close";
+"common.cancel" = "Cancel";
+"common.done" = "Done";
+"common.skip" = "Skip";
+"common.send" = "Send";
+
+"feedback.title" = "Send feedback";
+"feedback.message.title" = "What's on your mind?";
+"feedback.message.placeholder" = "Tell us what happened, or what we could do better.";
+"feedback.labels.title" = "What is it about?";
+"feedback.labels.subtitle" = "Pick any that apply.";
+"feedback.screenshots.title" = "Screenshots";
+"feedback.screenshots.subtitle" = "Screenshots help us see what you mean. Tap one to draw on it.";
+"feedback.screenshots.add" = "Add another screenshot";
+"feedback.screenshots.empty" = "No screenshots attached.";
+"feedback.screenshots.remove" = "Remove screenshot";
+"feedback.capture.hint" = "Go to the screen you want, then tap Capture.";
+"feedback.capture.button" = "Capture";
+"feedback.annotate.title" = "Draw on the screenshot";
+"feedback.annotate.undo" = "Undo";
+"feedback.annotate.clear" = "Clear";
+"feedback.email.title" = "Can we reach you?";
+"feedback.email.optional" = "Leave your email if you'd like a reply. This is optional.";
+"feedback.email.required" = "Enter your email so we can reply.";
+"feedback.email.placeholder" = "you@example.com";
+"feedback.email.invalid" = "Enter a valid email address.";
+"feedback.review.title" = "Ready to send";
+"feedback.review.subtitle" = "Your message, the selected labels and screenshots, and the details below are sent.";
+"feedback.review.showDetails" = "Show details";
+"feedback.review.hideDetails" = "Hide details";
+"feedback.sending" = "Sending…";
+"feedback.success.title" = "Thank you!";
+"feedback.success.sent" = "Your feedback has been sent.";
+"feedback.success.queued" = "Your feedback is saved and will be sent when you're back online.";
+
+"details.message" = "Message";
+"details.labels" = "Labels";
+"details.email" = "Email";
+"details.screenshots" = "Screenshots";
+"details.platform" = "Platform";
+"details.device" = "Device";
+"details.os" = "OS";
+"details.app" = "App";
+"details.locale" = "Locale";
+"details.timeZone" = "Time zone";
+"details.screen" = "Screen";
+"details.environment" = "Environment";
+"details.session" = "Session";
+"details.breadcrumbs" = "Recent activity";
+"details.custom" = "Custom data";
+
+"nps.question" = "How likely are you to recommend us to a friend?";
+"nps.notLikely" = "Not likely";
+"nps.veryLikely" = "Very likely";
+"nps.followUp.detractor" = "What could we do better?";
+"nps.followUp.passive" = "What would make it a 10 for you?";
+"nps.followUp.promoter" = "What do you like most?";
+"nps.followUp.placeholder" = "Your answer (optional)";
+"nps.thanks.detractor" = "Thanks, we'll work on it.";
+"nps.thanks.passive" = "Thanks for your feedback!";
+"nps.thanks.promoter" = "Thanks! We're glad you like it.";
+"nps.score" = "Score %@";

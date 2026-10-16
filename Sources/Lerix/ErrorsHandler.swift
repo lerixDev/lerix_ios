@@ -11,7 +11,8 @@ enum ErrorsHandler {
         stack: [String],
         type: BugType? = nil,
         severity: BugSeverity? = nil,
-        metadata: [String: Any]? = nil
+        metadata: [String: Any]? = nil,
+        sessionId: String? = nil
     ) async {
         // Every report — manual or a crash persisted on a previous run —
         // passes through here, so this is the one place filtering happens.
@@ -34,6 +35,7 @@ enum ErrorsHandler {
                 type: event.type,
                 severity: event.severity,
                 metadata: event.metadata,
+                sessionId: sessionId ?? LerixAnalytics.shared.sessionId,
                 attempt: 1
             )
         } catch {
@@ -49,11 +51,12 @@ enum ErrorsHandler {
         type: BugType?,
         severity: BugSeverity?,
         metadata: [String: Any]?,
+        sessionId: String?,
         attempt: Int
     ) async throws {
         guard let userId = LerixInit.existingUserId() else {
-            _ = try await LerixInit.registerUser()
-            try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: attempt)
+            _ = try await LerixInit.ensureUserId()
+            try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, sessionId: sessionId, attempt: attempt)
             return
         }
 
@@ -71,6 +74,8 @@ enum ErrorsHandler {
            let json = String(data: metaData, encoding: .utf8) {
             body["metadata"] = json
         }
+        // Optional DTO field: lets the dashboard compute crash-free sessions.
+        if let sessionId = sessionId { body["sessionId"] = sessionId }
         if let type = type { body["type"] = type.rawValue }
         if let severity = severity { body["severity"] = severity.rawValue }
 
@@ -78,9 +83,9 @@ enum ErrorsHandler {
             _ = try await LerixBackend.post(route: .sendBug, data: body, headers: ["app-user": userId])
         } catch let LerixApiError.server(code, _) where code == userNotRegisteredCode {
             guard attempt < maxRetryAttempts else { throw LerixApiError.server(code: code, message: "user not registered") }
-            try await LerixInit.deleteUser()
-            _ = try await LerixInit.registerUser()
-            try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, attempt: attempt + 1)
+            LerixInit.forgetLocalUser()
+            _ = try await LerixInit.ensureUserId()
+            try await send(issue: issue, stack: stack, type: type, severity: severity, metadata: metadata, sessionId: sessionId, attempt: attempt + 1)
         }
     }
 }

@@ -1,0 +1,66 @@
+/* Lerix SDK UI strings (Arabic). Override any key with Lerix.ui.setStrings(_:locale:). */
+
+"common.next" = "التالي";
+"common.back" = "رجوع";
+"common.close" = "إغلاق";
+"common.cancel" = "إلغاء";
+"common.done" = "تم";
+"common.skip" = "تخطي";
+"common.send" = "إرسال";
+
+"feedback.title" = "إرسال ملاحظات";
+"feedback.message.title" = "بماذا تفكر؟";
+"feedback.message.placeholder" = "أخبرنا بما حدث، أو بما يمكننا تحسينه.";
+"feedback.labels.title" = "ما موضوع ملاحظتك؟";
+"feedback.labels.subtitle" = "اختر كل ما ينطبق.";
+"feedback.screenshots.title" = "لقطات الشاشة";
+"feedback.screenshots.subtitle" = "تساعدنا لقطات الشاشة على فهم قصدك. اضغط على لقطة للرسم عليها.";
+"feedback.screenshots.add" = "إضافة لقطة شاشة أخرى";
+"feedback.screenshots.empty" = "لا توجد لقطات شاشة مرفقة.";
+"feedback.screenshots.remove" = "إزالة لقطة الشاشة";
+"feedback.capture.hint" = "انتقل إلى الشاشة التي تريدها، ثم اضغط التقاط.";
+"feedback.capture.button" = "التقاط";
+"feedback.annotate.title" = "ارسم على لقطة الشاشة";
+"feedback.annotate.undo" = "تراجع";
+"feedback.annotate.clear" = "مسح";
+"feedback.email.title" = "هل يمكننا التواصل معك؟";
+"feedback.email.optional" = "اترك بريدك الإلكتروني إن أردت أن نرد عليك. هذا اختياري.";
+"feedback.email.required" = "أدخل بريدك الإلكتروني لنتمكن من الرد عليك.";
+"feedback.email.placeholder" = "you@example.com";
+"feedback.email.invalid" = "أدخل بريدًا إلكترونيًا صحيحًا.";
+"feedback.review.title" = "جاهز للإرسال";
+"feedback.review.subtitle" = "سيتم إرسال رسالتك والتصنيفات ولقطات الشاشة المختارة والتفاصيل أدناه.";
+"feedback.review.showDetails" = "عرض التفاصيل";
+"feedback.review.hideDetails" = "إخفاء التفاصيل";
+"feedback.sending" = "جارٍ الإرسال…";
+"feedback.success.title" = "شكرًا لك!";
+"feedback.success.sent" = "تم إرسال ملاحظاتك.";
+"feedback.success.queued" = "تم حفظ ملاحظاتك وسيتم إرسالها عند عودة الاتصال.";
+
+"details.message" = "الرسالة";
+"details.labels" = "التصنيفات";
+"details.email" = "البريد الإلكتروني";
+"details.screenshots" = "لقطات الشاشة";
+"details.platform" = "المنصة";
+"details.device" = "الجهاز";
+"details.os" = "نظام التشغيل";
+"details.app" = "التطبيق";
+"details.locale" = "اللغة والمنطقة";
+"details.timeZone" = "المنطقة الزمنية";
+"details.screen" = "الشاشة";
+"details.environment" = "البيئة";
+"details.session" = "الجلسة";
+"details.breadcrumbs" = "النشاط الأخير";
+"details.custom" = "بيانات مخصصة";
+
+"nps.question" = "ما مدى احتمال أن توصي بنا لصديق؟";
+"nps.notLikely" = "غير محتمل";
+"nps.veryLikely" = "محتمل جدًا";
+"nps.followUp.detractor" = "ما الذي يمكننا تحسينه؟";
+"nps.followUp.passive" = "ما الذي يجعل تقييمك ١٠؟";
+"nps.followUp.promoter" = "ما الذي يعجبك أكثر؟";
+"nps.followUp.placeholder" = "إجابتك (اختياري)";
+"nps.thanks.detractor" = "شكرًا، سنعمل على ذلك.";
+"nps.thanks.passive" = "شكرًا على ملاحظاتك!";
+"nps.thanks.promoter" = "شكرًا! يسعدنا أنه أعجبك.";
+"nps.score" = "التقييم %@";

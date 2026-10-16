@@ -12,6 +12,10 @@ enum LerixCrashReporter {
     private static let pendingCrashFileName = "lerix_pending_crash.json"
     private static let fatalSignals: [Int32] = [SIGABRT, SIGILL, SIGSEGV, SIGFPE, SIGBUS, SIGTRAP]
 
+    /// The analytics session at crash time, written with the crash so the
+    /// report links to the session it ended.
+    static var currentSessionId: String?
+
     private static var pendingCrashURL: URL {
         FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
             .appendingPathComponent(pendingCrashFileName)
@@ -46,7 +50,8 @@ enum LerixCrashReporter {
     }
 
     private static func persistCrash(issue: String, stack: [String]) {
-        let payload: [String: Any] = ["issue": issue, "stack": stack]
+        var payload: [String: Any] = ["issue": issue, "stack": stack]
+        if let sessionId = currentSessionId { payload["sessionId"] = sessionId }
         guard let data = try? JSONSerialization.data(withJSONObject: payload) else { return }
         try? data.write(to: pendingCrashURL, options: .atomic)
     }
@@ -63,6 +68,12 @@ enum LerixCrashReporter {
         let stack = payload["stack"] as? [String] ?? []
         try? FileManager.default.removeItem(at: url)
 
-        await ErrorsHandler.throwError(issue: issue, stack: stack, type: .crash, severity: .critical)
+        await ErrorsHandler.throwError(
+            issue: issue,
+            stack: stack,
+            type: .crash,
+            severity: .critical,
+            sessionId: payload["sessionId"] as? String
+        )
     }
 }

@@ -16,6 +16,12 @@ struct LerixRoute {
     static let registerToken = LerixRoute(method: "POST", path: "plugin/notifications/register-token")
     static let subscribeTopic = LerixRoute(method: "POST", path: "plugin/notifications/subscribe-topic")
     static let unsubscribeTopic = LerixRoute(method: "POST", path: "plugin/notifications/unsubscribe-topic")
+    static let feedbackConfig = LerixRoute(method: "GET", path: "plugin/feedback/config")
+    static let feedbackAttachments = LerixRoute(method: "POST", path: "plugin/feedback/attachments")
+    static let feedback = LerixRoute(method: "POST", path: "plugin/feedback")
+    static let surveysConfig = LerixRoute(method: "GET", path: "plugin/surveys/config")
+    static let surveyResponses = LerixRoute(method: "POST", path: "plugin/surveys/responses")
+    static let events = LerixRoute(method: "POST", path: "plugin/events")
 }
 
 enum LerixBackendError: Error {
@@ -115,7 +121,7 @@ enum LerixBackend {
     /// Bridges the completion-handler `URLSession` API into async/await —
     /// `URLSession.data(for:)` is iOS 15+ only, and this package targets
     /// iOS 13+.
-    private static func data(for request: URLRequest) async throws -> (Data, URLResponse) {
+    static func data(for request: URLRequest) async throws -> (Data, URLResponse) {
         try await withCheckedThrowingContinuation { continuation in
             let task = URLSession.shared.dataTask(with: request) { data, response, error in
                 if let error = error {

@@ -10,6 +10,8 @@ final class LerixKeys {
     var apiKey: String = ""
     var projectId: String = ""
     var debug: Bool = false
+    /// `dev` / `prod` / custom, resolved by `LerixEnvironment.resolve`.
+    var environment: String = LerixEnvironment.autoDetected
 
     // Client-side error filtering — see `LerixErrorFilter`.
     var ignoreErrors: [String] = []

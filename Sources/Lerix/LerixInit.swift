@@ -174,6 +174,19 @@ enum LerixInit {
         LerixKeys.shared.projectUser = nil
     }
 
+    /// Drops the stored install user id without a backend call (the backend
+    /// already said it doesn't exist).
+    static func forgetLocalUser() {
+        LerixKeychain.delete(userIdKey)
+        LerixKeys.shared.projectUser = nil
+    }
+
+    /// The registered install user id, registering once if there is none.
+    /// Concurrent callers share one registration.
+    static func ensureUserId() async throws -> String {
+        try await LerixRegistrar.shared.ensureUserId()
+    }
+
     static func existingUserId() -> String? {
         if let cached = LerixKeys.shared.projectUser { return cached }
         let stored = LerixKeychain.read(userIdKey)
@@ -197,5 +210,22 @@ enum LerixInit {
     private static func decode<T: Decodable>(_ type: T.Type, from json: [String: Any]) throws -> T {
         let data = try JSONSerialization.data(withJSONObject: json)
         return try JSONDecoder().decode(T.self, from: data)
+    }
+}
+
+/// Coalesces registrations: `initialize`, the outbox and error reports can
+/// all find "no user yet" at the same moment, and each `register-user` call
+/// would create a separate backend user.
+actor LerixRegistrar {
+    static let shared = LerixRegistrar()
+    private var inFlight: Task<String, Error>?
+
+    func ensureUserId() async throws -> String {
+        if let id = LerixInit.existingUserId() { return id }
+        if let running = inFlight { return try await running.value }
+        let task = Task { try await LerixInit.registerUser() }
+        inFlight = task
+        defer { inFlight = nil }
+        return try await task.value
     }
 }

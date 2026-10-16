@@ -6,11 +6,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
     ) -> Bool {
+        // LERIX_API_KEY / LERIX_PROJECT_ID / LERIX_URL override the defaults, e.g. for a local
+        // gateway: `SIMCTL_CHILD_LERIX_URL=http://localhost:3010/v1 xcrun simctl launch ...`.
+        let env = ProcessInfo.processInfo.environment
         Lerix.initialize(
-            apiKey: "6141d7ec-6860-414e-bd5f-96a056698be5",
-            projectId: "u2ip-111-2esw",
+            apiKey: env["LERIX_API_KEY"] ?? "6141d7ec-6860-414e-bd5f-96a056698be5",
+            projectId: env["LERIX_PROJECT_ID"] ?? "u2ip-111-2esw",
+            url: env["LERIX_URL"] ?? "https://api.lerix.dev/v1",
             debugMode: true
         )
+        Lerix.feedback.enableShakeToReport()
         return true
     }
 

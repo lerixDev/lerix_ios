@@ -17,6 +17,7 @@ struct ContentView: View {
                 Section {
                     LabeledContent("Permission", value: status)
                     copyableRow(label: "User ID", value: userId)
+                        .lerixConfidential()
                     copyableRow(label: "Device ID", value: deviceId)
                     copyableRow(label: "Notification Token ID", value: notificationTokenId)
                 } header: {
@@ -28,6 +29,33 @@ struct ContentView: View {
                 Section("Notification events") {
                     LabeledContent("Last received (foreground)", value: lastReceived)
                     LabeledContent("Last tapped", value: lastTapped)
+                }
+
+                Section {
+                    Button("Send feedback") {
+                        Lerix.feedback.show { result in
+                            lastAction = result.submitted
+                                ? "Feedback sent (\(result.id ?? "queued"))"
+                                : "Feedback cancelled"
+                        }
+                    }
+
+                    Button("Show NPS survey (force)") {
+                        Task {
+                            let shown = await Lerix.surveys.maybeShowNps(force: true)
+                            lastAction = shown ? "NPS shown" : "NPS not shown (no survey config?)"
+                        }
+                    }
+
+                    Button("Track test event") {
+                        Lerix.track("example_button_tapped", props: ["source": "example", "count": 1])
+                        Lerix.analytics.flush()
+                        lastAction = "Tracked example_button_tapped"
+                    }
+                } header: {
+                    Text("Feedback, NPS, analytics")
+                } footer: {
+                    Text("Shake the device to report feedback too. The User ID row is masked in screenshots.")
                 }
 
                 Section("Actions") {
@@ -85,6 +113,7 @@ struct ContentView: View {
                 }
             }
             .navigationTitle("Lerix iOS Example")
+            .lerixScreen("Home")
             .onAppear(perform: refresh)
             .task {
                 Lerix.notifications.setOnNotificationReceived { payload in
