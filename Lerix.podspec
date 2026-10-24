@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'Lerix'
-  s.version          = '1.5.0'
+  s.version          = '1.5.1'
   s.summary          = 'Lerix SDK for native iOS: crash reporting, push notifications, in-app feedback, NPS and analytics.'
   s.description      = <<-DESC
     Native Swift SDK for Lerix, the developer monitoring and engagement platform.

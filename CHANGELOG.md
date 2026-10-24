@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.1 (unreleased)
+## 1.5.1
 
 ### Changed
 - **Minimum versions are now iOS 15 and macOS 12.** Xcode 27 can't build for anything older, so CocoaPods rejected
