@@ -58,6 +58,50 @@ struct ContentView: View {
                     Text("Shake the device to report feedback too. The User ID row is masked in screenshots.")
                 }
 
+                Section {
+                    ForEach(["checkout", "delivery", "help", "checkout-v2", "ios-hearts", "ios-numbers"], id: \.self) { key in
+                        Button("Rate \"\(key)\" (force)") {
+                            Task {
+                                let shown = await Lerix.surveys.showRating(key, force: true, custom: ["source": "example"])
+                                lastAction = shown ? "Rating \(key) shown" : "Rating \(key) not shown"
+                            }
+                        }
+                    }
+                    Button("Rate \"checkout-v2\" (if due)") {
+                        Task {
+                            let shown = await Lerix.surveys.showRating("checkout-v2")
+                            lastAction = shown ? "Rating checkout-v2 shown (was due)" : "Rating checkout-v2 not due"
+                        }
+                    }
+                    Button("Headless: rate \"delivery\" 4 + message") {
+                        Task {
+                            guard let prompt = await Lerix.surveys.dueRating("delivery", force: true, custom: ["source": "headless"]) else {
+                                lastAction = "Headless: no prompt"
+                                return
+                            }
+                            prompt.shown()
+                            let bad = prompt.answer("nope")
+                            let ok = prompt.answer(4, message: "Headless from iOS")
+                            prompt.dismiss()
+                            let group = prompt.groupOf(4)?.rawValue ?? "-"
+                            lastAction = "Headless \(prompt.key ?? "") \(prompt.choices.count) choices: bad=\(bad) ok=\(ok) group=\(group)"
+                        }
+                    }
+                    Button("Headless: NPS 3, then dismiss") {
+                        Task {
+                            guard let prompt = await Lerix.surveys.dueNps(force: true) else {
+                                lastAction = "Headless NPS: no prompt"
+                                return
+                            }
+                            let ok = prompt.answer(3)
+                            prompt.dismiss()
+                            lastAction = "Headless NPS ok=\(ok) group=\(prompt.groupOf(3)?.rawValue ?? "-") shape=\(prompt.appearance.shape ?? "-")"
+                        }
+                    }
+                } header: {
+                    Text("Surveys")
+                }
+
                 Section("Actions") {
                     Button("Request notification permission") {
                         Task {
@@ -125,6 +169,15 @@ struct ContentView: View {
                     Task { @MainActor in
                         lastTapped = describe(payload)
                     }
+                }
+
+                // E2E: `SIMCTL_CHILD_LERIX_DEMO_SURVEY=delivery` (or `nps`) opens that survey at launch.
+                if let demo = ProcessInfo.processInfo.environment["LERIX_DEMO_SURVEY"], !demo.isEmpty {
+                    try? await Task.sleep(nanoseconds: 2_000_000_000)
+                    let shown = demo == "nps"
+                        ? await Lerix.surveys.maybeShowNps(force: true)
+                        : await Lerix.surveys.showRating(demo, force: true, custom: ["source": "demo"])
+                    lastAction = "Demo survey \(demo): \(shown ? "shown" : "not shown")"
                 }
 
                 for _ in 0..<10 where userId == nil {

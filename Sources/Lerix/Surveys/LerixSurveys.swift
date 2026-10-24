@@ -5,76 +5,12 @@ import UIKit
 import AppKit
 #endif
 
-/// One survey from `GET /plugin/surveys/config` (contract §2.1).
-struct LerixSurvey: Codable, Equatable {
-    var id: String
-    var type: String
-    var question: [String: String]
-    var followUp: [String: [String: String]]?
-    var thanks: [String: [String: String]]?
-    var sampleRate: Double
-    var frequencyDays: Double
-    var initialDelayDays: Double
-    var minAppStarts: Int
-    var dismissCooldownDays: Double
-
-    init(
-        id: String,
-        type: String = "nps",
-        question: [String: String] = [:],
-        followUp: [String: [String: String]]? = nil,
-        thanks: [String: [String: String]]? = nil,
-        sampleRate: Double = 1,
-        frequencyDays: Double = 90,
-        initialDelayDays: Double = 7,
-        minAppStarts: Int = 3,
-        dismissCooldownDays: Double = 14
-    ) {
-        self.id = id
-        self.type = type
-        self.question = question
-        self.followUp = followUp
-        self.thanks = thanks
-        self.sampleRate = sampleRate
-        self.frequencyDays = frequencyDays
-        self.initialDelayDays = initialDelayDays
-        self.minAppStarts = minAppStarts
-        self.dismissCooldownDays = dismissCooldownDays
-    }
-
-    init(from decoder: Decoder) throws {
-        let c = try decoder.container(keyedBy: CodingKeys.self)
-        id = try c.decode(String.self, forKey: .id)
-        type = (try? c.decode(String.self, forKey: .type)) ?? "nps"
-        question = (try? c.decode([String: String].self, forKey: .question)) ?? [:]
-        followUp = try? c.decode([String: [String: String]].self, forKey: .followUp)
-        thanks = try? c.decode([String: [String: String]].self, forKey: .thanks)
-        sampleRate = (try? c.decode(Double.self, forKey: .sampleRate)) ?? 1
-        frequencyDays = (try? c.decode(Double.self, forKey: .frequencyDays)) ?? 90
-        initialDelayDays = (try? c.decode(Double.self, forKey: .initialDelayDays)) ?? 7
-        minAppStarts = (try? c.decode(Int.self, forKey: .minAppStarts)) ?? 3
-        dismissCooldownDays = (try? c.decode(Double.self, forKey: .dismissCooldownDays)) ?? 14
-    }
-
-    var rules: LerixSurveyRules {
-        LerixSurveyRules(
-            sampleRate: sampleRate,
-            frequencyDays: frequencyDays,
-            initialDelayDays: initialDelayDays,
-            minAppStarts: minAppStarts,
-            dismissCooldownDays: dismissCooldownDays
-        )
-    }
-}
-
-private struct LerixSurveysPayload: Decodable {
-    var surveys: [LerixSurvey]
-}
-
-/// Surveys, NPS first (contract §2). Eligibility is decided on the device
-/// (`LerixSurveyEligibilityRule`); responses are upserted through the
-/// outbox: once when shown, again when answered or dismissed, with the same
-/// `clientId`.
+/// In-app surveys (contract §2, PLAN-survey-customization §4): NPS, shown
+/// automatically when an install is due, and rating (CSAT) surveys, shown
+/// when the app asks for one by key. Eligibility is decided on the device
+/// (`LerixSurveyEligibilityRule`); responses are upserted through the outbox:
+/// once when shown, again when answered or dismissed, with the same
+/// `clientId`. `dueNps` / `dueRating` return the survey for your own UI.
 public final class LerixSurveys {
     public static let shared = LerixSurveys(store: .shared, outbox: .shared, transport: LerixURLSessionTransport())
 
@@ -100,32 +36,76 @@ public final class LerixSurveys {
 
     /// Shows the NPS survey if this install is eligible (contract §2.2):
     /// enough app starts, past the initial delay, inside the sample, and due.
-    /// `force: true` skips every check (for testing). Returns whether the
-    /// survey was shown. Needs iOS 15 / macOS 12 for the UI.
+    /// `force: true` skips every check (for testing). `custom` is stored with
+    /// the response. Returns whether the survey was shown. Needs iOS 15 /
+    /// macOS 12 for the UI.
     @discardableResult
-    public func maybeShowNps(force: Bool = false, from viewController: Presenter? = nil) async -> Bool {
+    public func maybeShowNps(force: Bool = false, custom: [String: Any]? = nil, from viewController: Presenter? = nil) async -> Bool {
+        await present(.nps, key: nil, force: force, custom: custom, from: viewController)
+    }
+
+    /// Shows the rating survey with `key` (set in the dashboard) when it is
+    /// active, matches this app and is due: at most once per `frequencyDays`
+    /// per install (0 = no limit), and not for `dismissCooldownDays` after a
+    /// dismiss. `force: true` skips those checks. `custom` is stored with the
+    /// response. Returns whether the survey was shown; in debug mode the
+    /// console says why not. Needs iOS 15 / macOS 12 for the UI.
+    @discardableResult
+    public func showRating(_ key: String, force: Bool = false, custom: [String: Any]? = nil, from viewController: Presenter? = nil) async -> Bool {
+        guard !key.isEmpty else {
+            LerixLog.debug("showRating needs the survey key set in the dashboard")
+            return false
+        }
+        return await present(.rating, key: key, force: force, custom: custom, from: viewController)
+    }
+
+    /// The NPS survey as a prompt for your own UI when this install is due
+    /// (or always with `force: true`), else `nil`. Nothing is recorded until
+    /// you call the prompt's methods. Works on every OS version.
+    public func dueNps(force: Bool = false, custom: [String: Any]? = nil) async -> LerixSurveyPrompt? {
+        await due(.nps, key: nil, force: force).map { LerixSurveyPrompt(run: LerixSurveyRun(owner: self, survey: $0, custom: custom)) }
+    }
+
+    /// The rating survey with `key` as a prompt for your own UI when it is due
+    /// (or always with `force: true`), else `nil`.
+    public func dueRating(_ key: String, force: Bool = false, custom: [String: Any]? = nil) async -> LerixSurveyPrompt? {
+        guard !key.isEmpty else { return nil }
+        return await due(.rating, key: key, force: force).map { LerixSurveyPrompt(run: LerixSurveyRun(owner: self, survey: $0, custom: custom)) }
+    }
+
+    private func present(_ type: LerixSurveyType, key: String?, force: Bool, custom: [String: Any]?, from viewController: Presenter?) async -> Bool {
         guard #available(iOS 15.0, macOS 12.0, *) else {
-            LerixLog.debug("NPS: the survey UI needs iOS 15 / macOS 12")
+            LerixLog.debug("Surveys: the survey UI needs iOS 15 / macOS 12; use dueNps / dueRating for your own UI")
             return false
         }
-        if !force, outbox.isDisabled(.surveys) {
-            LerixLog.debug("NPS: surveys are disabled by the server (SDK_DISABLED)")
-            return false
-        }
-        guard let survey = await surveys().first(where: { $0.type == "nps" }) else {
-            LerixLog.debug("NPS: no active NPS survey for this platform/version/environment")
-            return false
-        }
-        if !force {
-            let result = eligibility(for: survey)
-            guard result.eligible else {
-                LerixLog.debug("NPS not shown: \(result.failures.joined(separator: "; ")). Next due \(LerixTime.iso(result.nextDue))")
-                return false
-            }
-        }
+        guard let survey = await due(type, key: key, force: force) else { return false }
+        let run = LerixSurveyRun(owner: self, survey: survey, custom: custom)
         return await MainActor.run {
-            LerixNpsPresenter.present(survey: survey, surveys: self, from: viewController)
+            LerixSurveyPresenter.present(run: run, from: viewController)
         }
+    }
+
+    /// The survey to show, or `nil` with the reason logged in debug mode: the
+    /// active NPS survey, or the active rating with `key`, if this install is
+    /// due. `force` skips every rule.
+    func due(_ type: LerixSurveyType, key: String?, force: Bool) async -> LerixSurvey? {
+        let label = type == .nps ? "NPS" : "Rating \"\(key ?? "")\""
+        if !force, outbox.isDisabled(.surveys) {
+            LerixLog.debug("\(label) skipped: surveys are paused by the server (SDK_DISABLED)")
+            return nil
+        }
+        let match = await surveys().first { $0.type == type.rawValue && (type == .nps || $0.key == key) }
+        guard let survey = match else {
+            LerixLog.debug("\(label): no active survey for this platform/version/environment")
+            return nil
+        }
+        if force { return survey }
+        let result = eligibility(for: survey)
+        guard result.eligible else {
+            LerixLog.debug("\(label) not shown: \(result.failures.joined(separator: "; ")). Next due \(LerixTime.iso(result.nextDue))")
+            return nil
+        }
+        return survey
     }
 
     // MARK: - Eligibility
@@ -139,7 +119,8 @@ public final class LerixSurveys {
             appStarts: store.int(LerixStoreKey.appStarts) ?? 0,
             firstStartAt: store.date(LerixStoreKey.firstStartAt) ?? date,
             history: history(for: survey.id),
-            now: date
+            now: date,
+            spread: !survey.isRating
         )
     }
 
@@ -171,8 +152,8 @@ public final class LerixSurveys {
     }
 
     func cachedSurveys() -> [LerixSurvey]? {
-        guard let raw = store.get(LerixStoreKey.surveysConfig), let data = try? JSONEncoder().encode(raw) else { return nil }
-        return try? JSONDecoder().decode(LerixSurveysPayload.self, from: data).surveys
+        guard let raw = store.get(LerixStoreKey.surveysConfig) else { return nil }
+        return LerixSurveyParser.surveys(from: raw)
     }
 
     private func fetchSurveys() async -> [LerixSurvey]? {
@@ -185,13 +166,10 @@ public final class LerixSurveys {
         let response = await transport.get(route: .surveysConfig, headers: ["app-user": userId], query: query)
         switch LerixRetryPolicy.outcome(for: response, now: now()) {
         case .success:
-            guard let payload = response.payload,
-                  let data = try? JSONSerialization.data(withJSONObject: payload),
-                  let decoded = try? JSONDecoder().decode(LerixSurveysPayload.self, from: data),
-                  let json = try? JSONDecoder().decode(LerixJSON.self, from: data) else { return nil }
+            guard let payload = response.payload, let json = LerixJSON(any: payload), json.objectValue != nil else { return nil }
             store.set(LerixStoreKey.surveysConfig, json)
             store.setDate(LerixStoreKey.surveysConfigAt, now())
-            return decoded.surveys
+            return LerixSurveyParser.surveys(from: json)
         case .disabled(let until):
             store.setDate(LerixStoreKey.disabledUntil(.surveys), until)
             return nil
@@ -205,48 +183,15 @@ public final class LerixSurveys {
 
     // MARK: - Responses
 
-    func recordShown(survey: LerixSurvey, clientId: String, shownAt: Date) {
-        store.setDate(LerixStoreKey.survey(survey.id, "lastShownAt"), shownAt)
-        enqueueResponse(survey: survey, clientId: clientId, shownAt: shownAt)
-    }
-
-    func recordAnswer(survey: LerixSurvey, clientId: String, shownAt: Date, score: Int, message: String?) {
-        let date = now()
-        store.setDate(LerixStoreKey.survey(survey.id, "lastAnsweredAt"), date)
-        enqueueResponse(survey: survey, clientId: clientId, shownAt: shownAt, answeredAt: date, score: score, message: message)
-    }
-
-    func recordDismiss(survey: LerixSurvey, clientId: String, shownAt: Date) {
-        let date = now()
-        store.setDate(LerixStoreKey.survey(survey.id, "lastDismissedAt"), date)
-        enqueueResponse(survey: survey, clientId: clientId, shownAt: shownAt, dismissedAt: date)
-    }
-
-    private func enqueueResponse(
-        survey: LerixSurvey,
-        clientId: String,
-        shownAt: Date,
-        answeredAt: Date? = nil,
-        dismissedAt: Date? = nil,
-        score: Int? = nil,
-        message: String? = nil
-    ) {
-        let body = Self.responseBody(
-            surveyId: survey.id,
-            clientId: clientId,
-            shownAt: shownAt,
-            answeredAt: answeredAt,
-            dismissedAt: dismissedAt,
-            score: score,
-            message: message
-        )
+    func enqueue(body: [String: Any]) {
         guard let payload = LerixJSON(any: body) else { return }
         outbox.enqueue(LerixOutboxItem(kind: .survey, createdAt: now(), payload: payload))
         outbox.scheduleDrain(after: 0)
     }
 
-    /// `POST /plugin/surveys/responses` body (contract §2.3). Nulls never
-    /// clear a field on the server, so every upsert can send the full shape.
+    /// `POST /plugin/surveys/responses` body (contract §2.3, plan §4.3).
+    /// Nulls never clear a field on the server, so every upsert can send the
+    /// full shape. A rating answer carries its `choice` id and value as `score`.
     static func responseBody(
         surveyId: String,
         clientId: String,
@@ -254,7 +199,10 @@ public final class LerixSurveys {
         answeredAt: Date?,
         dismissedAt: Date?,
         score: Int?,
-        message: String?
+        message: String?,
+        choice: String? = nil,
+        custom: [String: Any]? = nil,
+        maxScore: Int = 10
     ) -> [String: Any] {
         var body: [String: Any] = [
             "clientId": clientId,
@@ -262,13 +210,14 @@ public final class LerixSurveys {
             "shownAt": LerixTime.iso(shownAt),
             "answeredAt": answeredAt.map(LerixTime.iso) ?? NSNull(),
             "dismissedAt": dismissedAt.map(LerixTime.iso) ?? NSNull(),
-            "score": score.map { min(max($0, 0), 10) } ?? NSNull(),
+            "score": score.map { min(max($0, 0), maxScore) } ?? NSNull(),
             "platform": LerixPlatform.value,
             "appVersion": LerixDeviceInfo.collectApp().version ?? "0.0.0",
             "environment": LerixKeys.shared.environment,
             "locale": LerixPlatform.locale,
-            "custom": [String: Any](),
+            "custom": custom ?? [String: Any](),
         ]
+        if let choice = choice { body["choice"] = choice }
         if let message = message?.trimmingCharacters(in: .whitespacesAndNewlines), !message.isEmpty {
             body["message"] = String(message.prefix(2000))
         }

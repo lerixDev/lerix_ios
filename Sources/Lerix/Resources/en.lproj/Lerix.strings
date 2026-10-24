@@ -64,3 +64,24 @@
 "nps.thanks.passive" = "Thanks for your feedback!";
 "nps.thanks.promoter" = "Thanks! We're glad you like it.";
 "nps.score" = "Score %@";
+"nps.dismiss" = "Close survey";
+
+"rating.question" = "How was your experience?";
+"rating.followUp" = "Tell us more (optional)";
+"rating.thanks" = "Thanks for your feedback!";
+"rating.dismiss" = "Close survey";
+"rating.choice" = "Rating %@";
+"rating.icon" = "%1$@ of %2$@";
+
+"appControl.update" = "Update";
+"appControl.later" = "Later";
+"appControl.skip" = "Skip this version";
+"appControl.tryAgain" = "Try again";
+"appControl.reload" = "Reload";
+"appControl.expectedBack" = "Expected back at %@";
+"appControl.required.title" = "Update required";
+"appControl.required.message" = "This version is no longer supported. Please update to continue.";
+"appControl.available.title" = "Update available";
+"appControl.available.message" = "A new version is available with improvements and fixes.";
+"appControl.maintenance.title" = "We'll be right back";
+"appControl.maintenance.message" = "The app is under maintenance. Please try again later.";

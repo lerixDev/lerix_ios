@@ -213,6 +213,15 @@ public final class LerixAnalytics {
         queue.sync { recordLocked(name: name, props: clean, date: date) }
     }
 
+    /// The SDK's own reserved `$` events (e.g. Release Control's). Skipped
+    /// when analytics is disabled, like every other event.
+    func trackInternal(_ name: String, props: [String: Any]) {
+        guard LerixEventValidator.isValidName(name, allowReserved: true) else { return }
+        let (clean, _) = LerixEventValidator.sanitize(props)
+        let date = now()
+        queue.sync { recordLocked(name: name, props: clean, date: date) }
+    }
+
     enum ScreenSource {
         /// `Lerix.screen`: always recorded.
         case manual

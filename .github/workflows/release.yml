@@ -1,0 +1,46 @@
+# Backup publisher for this package; normally ./release (atelerix/release.mjs) publishes from your Mac.
+# Generated with the other Lerix SDK release workflows; keep them alike. See RELEASING.md.
+# SwiftPM resolves the tag directly; this checks it and pushes the pod to trunk.
+name: Release
+
+on:
+  # Releases publish from your Mac (./release or Lerix Release Desk). This is the backup path: run it by hand
+  # from the Actions tab with "Use workflow from" set to the release tag.
+  workflow_dispatch:
+
+concurrency: release-${{ github.ref }}
+
+permissions:
+  contents: write   # the GitHub release
+
+jobs:
+  publish:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tag matches the podspec and SDK version
+        run: |
+          VERSION="$GITHUB_REF_NAME"
+          POD=$(sed -n "s/.*s\.version *= *'\(.*\)'.*/\1/p" Lerix.podspec)
+          SDK=$(sed -n 's/.*static let version = "\(.*\)".*/\1/p' Sources/Lerix/Core/LerixEnvironment.swift)
+          test "$POD" = "$VERSION" && test "$SDK" = "$VERSION" || { echo "Tag $VERSION, podspec $POD, SDK $SDK"; exit 1; }
+          echo "VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - run: swift build
+      - run: swift test
+
+      - name: CocoaPods trunk
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: pod trunk push Lerix.podspec --allow-warnings
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=""
+          if [ -f "CHANGELOG.md" ]; then
+            notes=$(awk -v v="$VERSION" '/^## /{ if (found) exit; h=$2; gsub(/[\[\]]/, "", h); if (h == v) { found=1; next } } found' "CHANGELOG.md")
+          fi
+          gh release create "$GITHUB_REF_NAME" --verify-tag --title "Lerix (iOS) $VERSION" --notes "${notes:-See the changelog.}"

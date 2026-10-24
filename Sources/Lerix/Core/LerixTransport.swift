@@ -5,6 +5,8 @@ import Foundation
 struct LerixHTTPResponse {
     var status: Int?
     var json: [String: Any]?
+    /// The `ETag` response header (app-config).
+    var etag: String? = nil
 
     static let network = LerixHTTPResponse(status: nil, json: nil)
 
@@ -169,6 +171,12 @@ struct LerixURLSessionTransport: LerixTransport {
         body: Data?,
         contentType: String?
     ) async -> LerixHTTPResponse {
+        // Vendor kill switch (contract §2.5). Callers check it first so
+        // queued items wait without backoff; this is the backstop.
+        if let until = LerixSdkGate.shared.blockedUntil(path: route.path) {
+            LerixLog.debug("\(route.method) \(route.path) skipped: SDK disabled until \(until)")
+            return .network
+        }
         let keys = LerixKeys.shared
         guard !keys.apiKey.isEmpty, !keys.projectId.isEmpty,
               var components = URLComponents(string: "\(keys.url)/\(keys.projectId)/\(route.path)") else {
@@ -184,6 +192,10 @@ struct LerixURLSessionTransport: LerixTransport {
         request.setValue(keys.apiKey, forHTTPHeaderField: "lerix-key")
         for (key, value) in headers { request.setValue(value, forHTTPHeaderField: key) }
         request.httpBody = body
+        // A conditional request must reach the server, so its 304 does too.
+        if headers.keys.contains(where: { $0.lowercased() == "if-none-match" }) {
+            request.cachePolicy = .reloadIgnoringLocalCacheData
+        }
 
         LerixLog.debug("→ \(route.method) \(url)")
         do {
@@ -191,7 +203,8 @@ struct LerixURLSessionTransport: LerixTransport {
             let status = (response as? HTTPURLResponse)?.statusCode
             LerixLog.debug("← \(status.map(String.init) ?? "?") \(url)")
             let json = data.isEmpty ? nil : (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
-            let result = LerixHTTPResponse(status: status, json: json)
+            let etag = (response as? HTTPURLResponse)?.value(forHTTPHeaderField: "ETag")
+            let result = LerixHTTPResponse(status: status, json: json, etag: etag)
             for warning in result.warnings {
                 LerixLog.debug("Server warning \(warning.code): \(warning.message)")
             }

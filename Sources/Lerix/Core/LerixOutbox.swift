@@ -232,9 +232,16 @@ final class LerixOutbox {
 
     // MARK: - Kill switch and backoff
 
+    /// The vendor kill switch (contract §2.5) for a feature; replaceable in tests.
+    var sdkGate: (LerixFeature) -> Date? = { LerixSdkGate.shared.blockedUntil(LerixSdkGate.module(for: $0)) }
+
+    /// The later of the server's `403 SDK_DISABLED` deadline and the app-config
+    /// kill switch. Queued items stay while either applies.
     func disabledUntil(_ feature: LerixFeature) -> Date? {
-        guard let until = store.date(LerixStoreKey.disabledUntil(feature)), until > now() else { return nil }
-        return until
+        var result: Date?
+        if let until = store.date(LerixStoreKey.disabledUntil(feature)), until > now() { result = until }
+        if let gate = sdkGate(feature), gate > now() { result = max(result ?? gate, gate) }
+        return result
     }
 
     func isDisabled(_ feature: LerixFeature) -> Bool { disabledUntil(feature) != nil }
@@ -342,14 +349,20 @@ final class LerixOutbox {
     }
 
     private func drainSurveys(userId: String) async {
-        for item in items(of: .survey) {
-            guard let body = item.payload.anyValue as? [String: Any] else { remove(item); continue }
-            let response = await transport.sendJSON(route: .surveyResponses, headers: ["app-user": userId], body: body)
-            let outcome = LerixRetryPolicy.outcome(for: response, now: now())
-            await handle(outcome, feature: .surveys)
-            switch outcome {
-            case .success, .drop: remove(item)
-            default: return
+        // A showing reports shown → answered → message within moments, so
+        // pick up what was queued while this drain was sending (bounded).
+        for _ in 0..<5 {
+            let pending = items(of: .survey)
+            guard !pending.isEmpty else { return }
+            for item in pending {
+                guard let body = item.payload.anyValue as? [String: Any] else { remove(item); continue }
+                let response = await transport.sendJSON(route: .surveyResponses, headers: ["app-user": userId], body: body)
+                let outcome = LerixRetryPolicy.outcome(for: response, now: now())
+                await handle(outcome, feature: .surveys)
+                switch outcome {
+                case .success, .drop: remove(item)
+                default: return
+                }
             }
         }
     }

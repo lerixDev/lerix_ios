@@ -17,6 +17,10 @@ enum ErrorsHandler {
         // Every report — manual or a crash persisted on a previous run —
         // passes through here, so this is the one place filtering happens.
         let keys = LerixKeys.shared
+        if LerixSdkGate.shared.isBlocked(.errors) {
+            LerixLog.debug("Error not reported: error reporting is disabled by Lerix (\(issue))")
+            return
+        }
         let candidate = LerixErrorEvent(message: issue, stack: stack, type: type, severity: severity, metadata: metadata)
         guard let event = LerixErrorFilter.apply(
             candidate,

@@ -3,7 +3,11 @@ import Foundation
 /// Client-side event validation (contract §3.1). Invalid events and props are
 /// dropped with a debug log; nothing here throws to the caller.
 enum LerixEventValidator {
-    static let reservedNames: Set<String> = ["$first_open", "$session_start", "$session_end", "$screen_view", "$app_update"]
+    static let reservedNames: Set<String> = [
+        "$first_open", "$session_start", "$session_end", "$screen_view", "$app_update",
+        // Release Control (CONTRACT-release-control §2.4)
+        "$update_prompt_shown", "$update_prompt_action", "$maintenance_shown", "$config_applied",
+    ]
     static let maxProps = 25
     static let maxStringLength = 1024
 

@@ -18,7 +18,7 @@ Add the package via Xcode: **File → Add Package Dependencies…** and enter
 
 ```swift
 dependencies: [
-    .package(url: "https://github.com/lerixDev/lerix_ios", from: "1.3.0")
+    .package(url: "https://github.com/lerixDev/lerix_ios", from: "1.5.0")
 ]
 ```
 
@@ -33,7 +33,7 @@ dependencies: [
 ### CocoaPods
 
 ```ruby
-pod 'Lerix', '~> 1.3'
+pod 'Lerix', '~> 1.5'
 ```
 
 Then run `pod install` and open the `.xcworkspace`.
@@ -93,6 +93,12 @@ Lerix.notifications.setOnNotificationReceived { payload in
     // foreground banner already shown by the SDK; use this for custom UI state
 }
 ```
+
+Lerix becomes the `UNUserNotificationCenter` delegate the first time you use
+`Lerix.notifications`, or at `Lerix.initialize` once the app has registered
+for remote notifications. Apps that don't use push keep their own delegate.
+Set the tap handler in `application(_:didFinishLaunchingWithOptions:)` so a
+tap that launches the app is delivered too.
 
 ### 4. Report errors
 
@@ -258,7 +264,7 @@ checkpointed), then the feedback is posted with a client id the server
 dedupes on. Offline feedback is kept until it can be delivered; a `401`
 never deletes it.
 
-### 9. NPS survey
+### 9. Surveys: NPS and rating
 
 ```swift
 // e.g. after a successful checkout
@@ -268,16 +274,51 @@ Task { await Lerix.surveys.maybeShowNps() }
 Task { await Lerix.surveys.maybeShowNps(force: true) }
 ```
 
-The survey (question, cadence, sampling, targeting) is configured in the
+The survey (question, cadence, sampling, targeting, look) is configured in the
 dashboard; a default NPS survey exists for every project. The SDK shows it
 only when this install has had enough app starts, is past the initial delay,
 falls inside the sample, and is due (90 days after an answer, 14 days after a
 dismissal by default). With `debugMode: true` it logs why a survey was
 skipped. The sheet (0–10 score → follow-up → thanks) opens at half height.
+Its look (button shape, accent colour, colour by score group, the end labels)
+is set per survey in the dashboard; a survey accent wins over `Lerix.ui.tintColor`.
+
+#### Rating surveys (CSAT)
+
+```swift
+// After a moment you care about, e.g. a finished checkout.
+Task { await Lerix.surveys.showRating("checkout") }
+// A "rate us" button: always show it, and store extra data with the answer.
+Task { await Lerix.surveys.showRating("checkout", force: true, custom: ["orderId": orderId]) }
+```
+
+A rating survey is created in the dashboard with a key, a question and 2–10
+choices: stars, hearts, emoji/faces, 👍/👎 or numbers, each with its own value,
+label, colour and group (negative / neutral / positive). It is only shown when
+you call `showRating(_:)`, and still at most once per `frequencyDays` per
+install (0 = no limit) and not again for `dismissCooldownDays` after a dismiss.
+The row follows the layout direction (mirrored in Arabic).
+
+#### Your own UI (headless)
+
+```swift
+if let prompt = await Lerix.surveys.dueRating("checkout") {   // or dueNps()
+    prompt.shown()                                  // when it is on screen
+    // prompt.question, prompt.choices (id, value, label, emoji, color, group), prompt.appearance
+    prompt.answer(choice.id)                        // NPS: prompt.answer(9)
+    prompt.answer(choice.id, message: "Fast and easy") // add the follow-up text
+    // or prompt.dismiss()
+}
+```
+
+The prompt records exactly what the built-in sheet would, so results and
+cadence are the same. `answer` returns `false` for an answer that doesn't fit
+the survey; `dismiss()` is ignored after an answer. Headless prompts work on
+every supported OS version; the built-in sheets need iOS 15 / macOS 12.
 
 ### 10. Language and colours
 
-The feedback and NPS UI ships in English and Arabic (right-to-left) and
+The feedback and survey UI ships in English and Arabic (right-to-left) and
 follows the app's language and light/dark mode.
 
 ```swift
@@ -291,8 +332,8 @@ String keys are listed in `Sources/Lerix/Resources/en.lproj/Lerix.strings`.
 ## Requirements
 
 - iOS 13+ (macOS 11+ apps register as `os: "macos"` and receive pushes via APNs)
-- The feedback and NPS UI needs iOS 15+ / macOS 12+; everything else, including
-  `Lerix.feedback.submit`, works on iOS 13+
+- The feedback and survey UI needs iOS 15+ / macOS 12+; everything else, including
+  `Lerix.feedback.submit` and `Lerix.surveys.dueNps` / `dueRating`, works on iOS 13+
 - `Push Notifications` and `Background Modes → Remote notifications`
   capabilities enabled in your app target
 - An APNs key configured in your Lerix project settings

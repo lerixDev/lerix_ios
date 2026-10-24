@@ -97,6 +97,10 @@ enum LerixStoreKey {
     static let feedbackConfigAt = "feedbackConfigAt"
     static let surveysConfig = "surveysConfig"
     static let surveysConfigAt = "surveysConfigAt"
+    static let appControlCache = "appControl.cache"
+    static let appControlRemindVersion = "appControl.remindVersion"
+    static let appControlRemindUntil = "appControl.remindUntil"
+    static let appControlSkippedVersion = "appControl.skippedVersion"
     static func disabledUntil(_ feature: LerixFeature) -> String { "disabledUntil.\(feature.rawValue)" }
     static func survey(_ id: String, _ field: String) -> String { "survey.\(id).\(field)" }
 }

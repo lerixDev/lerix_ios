@@ -30,6 +30,7 @@ public enum Lerix {
         beforeSend: ((LerixErrorEvent) -> LerixErrorEvent?)? = nil,
         environment: String? = nil,
         analytics: LerixAnalyticsOptions = LerixAnalyticsOptions(),
+        appControl: LerixAppControlOptions = LerixAppControlOptions(),
         onError: ((Error) -> Void)? = nil
     ) {
         let keys = LerixKeys.shared
@@ -42,7 +43,25 @@ public enum Lerix {
         keys.beforeSend = beforeSend
         keys.environment = LerixEnvironment.resolve(environment)
 
-        LerixNotifications.shared.register()
+        // Release Control first: the persisted config (maintenance, forced
+        // update, vendor kill switch) applies before any other network call.
+        let control = LerixAppControl.shared
+        control.onGateLifted = { lifted in
+            LerixLog.debug("Lerix SDK re-enabled: \(lifted.map(\.rawValue).sorted())")
+            if lifted.contains(.core) { LerixStartup.resume() }
+            if lifted.contains(.push), let token = LerixNotifications.shared.getDeviceToken() {
+                Task { try? await LerixNotifications.shared.registerTokenWithBackend(token: token) }
+            }
+            LerixOutbox.shared.scheduleDrain(after: 1)
+        }
+        control.start(options: appControl)
+
+        // The notification delegate only for apps that use push: they have
+        // registered for remote notifications on an earlier launch, and need
+        // the delegate from launch so a tap that opens the app reaches
+        // `setOnNotificationTapped`. Every other app keeps its own delegate (or
+        // another library's); `Lerix.notifications` sets it on first use.
+        if LerixNotifications.appRegisteredForPush { LerixNotifications.shared.register() }
         if enableCrashReporting {
             LerixCrashReporter.install()
         }
@@ -56,27 +75,7 @@ public enum Lerix {
         outbox.eventContext = { LerixAnalytics.context() }
         LerixAnalytics.shared.start(options: analytics)
 
-        Task {
-            do {
-                _ = try await LerixInit.ping()
-                // Registration only needs to happen once per install — the
-                // Keychain-persisted user id survives relaunches, so this
-                // avoids creating a fresh backend user on every launch.
-                if LerixInit.existingUserId() == nil {
-                    _ = try await LerixInit.ensureUserId()
-                } else {
-                    // Sends a `setUser` id that was queued or failed earlier.
-                    await LerixInit.syncIdentityQuietly()
-                }
-                await LerixCrashReporter.reportPendingCrashIfAny()
-                // Warm the feedback config cache so the UI opens with the
-                // dashboard's labels.
-                await LerixFeedback.shared.refreshConfig()
-            } catch {
-                if debugMode { print("[Lerix] Initialization failed: \(error)") }
-                onError?(error)
-            }
-        }
+        LerixStartup.run(debugMode: debugMode, onError: onError)
     }
 
     /// Manually report a caught error/crash. The current session id and the
@@ -126,11 +125,22 @@ public enum Lerix {
         LerixBreadcrumbs.shared.add(message, category: category, data: data)
     }
 
-    public static var notifications: LerixNotifications { LerixNotifications.shared }
+    /// Push notifications. The first access makes Lerix the
+    /// `UNUserNotificationCenter` delegate (foreground banners, tap callbacks),
+    /// so touch it in `application(_:didFinishLaunchingWithOptions:)` (e.g. to
+    /// call `setOnNotificationTapped`) for taps that launch the app.
+    public static var notifications: LerixNotifications {
+        LerixNotifications.shared.register()
+        return LerixNotifications.shared
+    }
 
     /// In-app feedback: `show` (built-in UI), `submit` (headless),
     /// `setUserEmail`, `enableShakeToReport` (iOS).
     public static var feedback: LerixFeedback { LerixFeedback.shared }
+
+    /// Release Control: `state`, `onChange`, `refresh()`, `openStore()`,
+    /// `later()`, `skip()`. Configure with `initialize(appControl:)`.
+    public static var appControl: LerixAppControl { LerixAppControl.shared }
 
     /// Surveys: `maybeShowNps(force:)`.
     public static var surveys: LerixSurveys { LerixSurveys.shared }
@@ -175,5 +185,52 @@ public enum Lerix {
     public static func reRegisterUser() async throws {
         try await LerixInit.deleteUser()
         _ = try await LerixInit.registerUser()
+    }
+}
+
+/// The launch sequence of `Lerix.initialize` (ping, register, identity,
+/// pending crash, feedback config). While the vendor kill switch blocks
+/// `all` (CONTRACT-release-control §2.5) it is deferred and runs once the
+/// switch lifts (at `until`, or when a fetch clears it).
+enum LerixStartup {
+    private static let lock = NSLock()
+    private static var pending: (debugMode: Bool, onError: ((Error) -> Void)?)?
+
+    static func run(debugMode: Bool, onError: ((Error) -> Void)?) {
+        if let until = LerixSdkGate.shared.blockedUntil(.core) {
+            LerixLog.debug("Initialization deferred: the Lerix SDK is disabled until \(until)")
+            lock.lock(); pending = (debugMode, onError); lock.unlock()
+            return
+        }
+        Task {
+            do {
+                _ = try await LerixInit.ping()
+                // Registration only needs to happen once per install — the
+                // Keychain-persisted user id survives relaunches, so this
+                // avoids creating a fresh backend user on every launch.
+                if LerixInit.existingUserId() == nil {
+                    _ = try await LerixInit.ensureUserId()
+                } else {
+                    // Sends a `setUser` id that was queued or failed earlier.
+                    await LerixInit.syncIdentityQuietly()
+                }
+                await LerixCrashReporter.reportPendingCrashIfAny()
+                // Warm the feedback config cache so the UI opens with the
+                // dashboard's labels.
+                await LerixFeedback.shared.refreshConfig()
+            } catch {
+                if debugMode { print("[Lerix] Initialization failed: \(error)") }
+                onError?(error)
+            }
+        }
+    }
+
+    /// Runs a deferred launch sequence, if any.
+    static func resume() {
+        lock.lock()
+        let deferred = pending
+        pending = nil
+        lock.unlock()
+        if let deferred = deferred { run(debugMode: deferred.debugMode, onError: deferred.onError) }
     }
 }

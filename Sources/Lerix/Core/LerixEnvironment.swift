@@ -7,7 +7,7 @@ import UIKit
 /// `version` equal to `Lerix.podspec`'s `s.version`.
 enum LerixSDK {
     static let name = "lerix-ios"
-    static let version = "1.3.0"
+    static let version = "1.5.0"
 }
 
 /// Environment resolution (contract §0): an explicit value from `initialize`

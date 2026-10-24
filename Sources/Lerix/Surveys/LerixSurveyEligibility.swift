@@ -54,6 +54,10 @@ struct LerixSurveyEligibility: Equatable {
 /// With both an answer and a dismissal recorded, the later of the two
 /// decides (an answer after a dismissal → frequency; a dismissal after an
 /// answer → cooldown).
+///
+/// Rating surveys (PLAN-survey-customization §4.2) pass `spread: false`: they
+/// are shown at a moment the app picks, so before any showing
+/// `nextDue = firstStartAt`, and `frequencyDays` 0 means no gap after an answer.
 enum LerixSurveyEligibilityRule {
     static let day: TimeInterval = 86_400
 
@@ -62,7 +66,8 @@ enum LerixSurveyEligibilityRule {
         surveyId: String,
         installId: String,
         firstStartAt: Date,
-        history: LerixSurveyHistory
+        history: LerixSurveyHistory,
+        spread: Bool = true
     ) -> Date {
         let answered = history.lastAnsweredAt.map { $0.addingTimeInterval(rules.frequencyDays * day) }
         let dismissed = history.lastDismissedAt.map { $0.addingTimeInterval(rules.dismissCooldownDays * day) }
@@ -74,6 +79,7 @@ enum LerixSurveyEligibilityRule {
         case (nil, _?):
             return dismissed!
         case (nil, nil):
+            guard spread else { return firstStartAt }
             let window = UInt64(max(0, (rules.frequencyDays * day).rounded(.down)))
             let offset = window > 0 ? UInt64(LerixFNV.hash32(installId + surveyId + "spread")) % window : 0
             return firstStartAt.addingTimeInterval(TimeInterval(offset))
@@ -87,7 +93,8 @@ enum LerixSurveyEligibilityRule {
         appStarts: Int,
         firstStartAt: Date,
         history: LerixSurveyHistory,
-        now: Date
+        now: Date,
+        spread: Bool = true
     ) -> LerixSurveyEligibility {
         var failures: [String] = []
         if appStarts < rules.minAppStarts {
@@ -101,7 +108,7 @@ enum LerixSurveyEligibilityRule {
         if !(bucket < rules.sampleRate) {
             failures.append("bucket \(bucket) is not < sampleRate \(rules.sampleRate)")
         }
-        let due = nextDue(rules: rules, surveyId: surveyId, installId: installId, firstStartAt: firstStartAt, history: history)
+        let due = nextDue(rules: rules, surveyId: surveyId, installId: installId, firstStartAt: firstStartAt, history: history, spread: spread)
         if now < due {
             failures.append("not due until \(LerixTime.iso(due))")
         }

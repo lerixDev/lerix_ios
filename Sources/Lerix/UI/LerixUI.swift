@@ -5,7 +5,7 @@ import SwiftUI
 
 private final class LerixBundleToken {}
 
-/// Look and language of the SDK's built-in UI (feedback, NPS).
+/// Look and language of the SDK's built-in UI (feedback, surveys).
 ///
 /// - Strings ship in English and Arabic (`Resources/*.lproj/Lerix.strings`);
 ///   any other language falls back to English. Override individual keys
@@ -90,6 +90,13 @@ public final class LerixUI {
 
     func string(_ key: String, _ argument: String) -> String {
         string(key).replacingOccurrences(of: "%@", with: argument)
+    }
+
+    /// Two positional arguments: `%1$@` and `%2$@`.
+    func string(_ key: String, _ first: String, _ second: String) -> String {
+        string(key)
+            .replacingOccurrences(of: "%1$@", with: first)
+            .replacingOccurrences(of: "%2$@", with: second)
     }
 
     /// Server-provided text such as `{"en": "Bug", "ar": "خطأ"}`:

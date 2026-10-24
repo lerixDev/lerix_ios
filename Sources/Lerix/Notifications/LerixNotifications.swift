@@ -28,8 +28,27 @@ public final class LerixNotifications: NSObject {
     private let deviceTokenKey = "lerix_device_token"
     private let registeredTokenIdKey = "lerix_registered_token_id"
 
-    /// Call once, from `application(_:didFinishLaunchingWithOptions:)`.
+    private var registered = false
+
+    /// Whether this app registered for remote notifications before (on an
+    /// earlier launch, or this one). Only meaningful on the main thread.
+    static var appRegisteredForPush: Bool {
+        guard Thread.isMainThread else { return false }
+        #if canImport(UIKit)
+        return UIApplication.shared.isRegisteredForRemoteNotifications
+        #elseif canImport(AppKit)
+        return NSApplication.shared.isRegisteredForRemoteNotifications
+        #else
+        return false
+        #endif
+    }
+
+    /// Makes Lerix the `UNUserNotificationCenter` delegate. `Lerix.notifications`
+    /// calls it on first use; calling it again does nothing. For taps that
+    /// launch the app, it must run before `didFinishLaunching` returns.
     public func register() {
+        guard !registered else { return }
+        registered = true
         UNUserNotificationCenter.current().delegate = self
     }
 
@@ -140,7 +159,7 @@ public final class LerixNotifications: NSObject {
         return ["userId": userId, "appId": config.id ?? "", "token": token, "topicKey": topic]
     }
 
-    private func registerTokenWithBackend(token: String) async throws {
+    func registerTokenWithBackend(token: String) async throws {
         guard let userId = LerixInit.existingUserId() else { return }
         let config = try await LerixInit.cachedOrFreshPingConfig()
         let response = try await LerixBackend.post(
@@ -157,9 +176,25 @@ public final class LerixNotifications: NSObject {
     /// notification — mirrors `LerixPlugin.handleRemoteNotification`.
     /// Call from `application(_:didReceiveRemoteNotification:...)`.
     public func handleRemoteNotification(userInfo: [AnyHashable: Any]) {
-        guard let command = userInfo["command"] as? String, command == "remove" else { return }
-        guard let notificationId = userInfo["notificationId"] as? String else { return }
+        if LerixAppControl.shared.handleRemoteNotification(userInfo) { return } // silent config_refresh (Release Control)
+        guard let notificationId = Self.removalNotificationId(from: userInfo) else { return }
         UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [notificationId])
+    }
+
+    /// The id to remove when `userInfo` is a removal push, else nil. The backend
+    /// sends `{ data: { action: "remove", notificationId } }` (same shape as FCM);
+    /// the older top-level `{ command: "remove", notificationId }` is still accepted.
+    static func removalNotificationId(from userInfo: [AnyHashable: Any]) -> String? {
+        if let data = userInfo["data"] as? [AnyHashable: Any],
+           data["action"] as? String == "remove",
+           let id = data["notificationId"] as? String, !id.isEmpty {
+            return id
+        }
+        if userInfo["command"] as? String == "remove",
+           let id = userInfo["notificationId"] as? String, !id.isEmpty {
+            return id
+        }
+        return nil
     }
 }
 

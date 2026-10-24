@@ -22,6 +22,9 @@ struct LerixRoute {
     static let surveysConfig = LerixRoute(method: "GET", path: "plugin/surveys/config")
     static let surveyResponses = LerixRoute(method: "POST", path: "plugin/surveys/responses")
     static let events = LerixRoute(method: "POST", path: "plugin/events")
+    /// Release Control (CONTRACT-release-control §1). Never blocked by the
+    /// vendor kill switch.
+    static let appConfig = LerixRoute(method: "GET", path: "plugin/app-config")
 }
 
 enum LerixBackendError: Error {
@@ -72,6 +75,11 @@ enum LerixBackend {
         queryItems: [URLQueryItem],
         body: [String: Any]?
     ) async throws -> [String: Any]? {
+        // Vendor kill switch (contract §2.5): nothing leaves the device.
+        if let until = LerixSdkGate.shared.blockedUntil(path: route.path) {
+            LerixLog.debug("\(route.method) \(route.path) skipped: SDK disabled until \(until)")
+            throw LerixApiError.server(code: "SDK_DISABLED", message: "Disabled by Lerix until \(LerixTime.iso(until))")
+        }
         let keys = LerixKeys.shared
         guard var components = URLComponents(string: "\(keys.url)/\(keys.projectId)/\(route.path)") else {
             throw LerixBackendError.invalidURL

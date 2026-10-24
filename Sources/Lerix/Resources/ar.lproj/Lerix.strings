@@ -64,3 +64,24 @@
 "nps.thanks.passive" = "شكرًا على ملاحظاتك!";
 "nps.thanks.promoter" = "شكرًا! يسعدنا أنه أعجبك.";
 "nps.score" = "التقييم %@";
+"nps.dismiss" = "إغلاق الاستبيان";
+
+"rating.question" = "كيف كانت تجربتك؟";
+"rating.followUp" = "أخبرنا أكثر (اختياري)";
+"rating.thanks" = "شكرًا على رأيك!";
+"rating.dismiss" = "إغلاق الاستبيان";
+"rating.choice" = "التقييم %@";
+"rating.icon" = "%1$@ من %2$@";
+
+"appControl.update" = "تحديث";
+"appControl.later" = "لاحقاً";
+"appControl.skip" = "تخطي هذا الإصدار";
+"appControl.tryAgain" = "حاول مرة أخرى";
+"appControl.reload" = "إعادة التحميل";
+"appControl.expectedBack" = "العودة المتوقعة الساعة %@";
+"appControl.required.title" = "التحديث مطلوب";
+"appControl.required.message" = "هذا الإصدار لم يعد مدعوماً. يرجى التحديث للمتابعة.";
+"appControl.available.title" = "يتوفر تحديث";
+"appControl.available.message" = "يتوفر إصدار جديد يتضمن تحسينات وإصلاحات.";
+"appControl.maintenance.title" = "سنعود قريباً";
+"appControl.maintenance.message" = "التطبيق تحت الصيانة حالياً. يرجى المحاولة لاحقاً.";

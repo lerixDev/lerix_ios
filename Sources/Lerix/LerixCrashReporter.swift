@@ -59,6 +59,8 @@ enum LerixCrashReporter {
     /// Call once at startup (after registration) to report and clear any
     /// crash captured during a previous run.
     static func reportPendingCrashIfAny() async {
+        // Kept on disk while error reporting is switched off (contract §2.5).
+        if LerixSdkGate.shared.isBlocked(.errors) { return }
         let url = pendingCrashURL
         guard let data = try? Data(contentsOf: url),
               let payload = try? JSONSerialization.jsonObject(with: data) as? [String: Any],

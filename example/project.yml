@@ -24,6 +24,10 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UIBackgroundModes:
           - remote-notification
+        # Lets iOS run the example in Arabic (RTL) to try the SDK's Arabic strings.
+        CFBundleLocalizations:
+          - en
+          - ar
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: dev.atelerix.lerixexample
