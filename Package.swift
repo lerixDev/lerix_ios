@@ -4,7 +4,7 @@ import PackageDescription
 let package = Package(
     name: "lerix_ios",
     defaultLocalization: "en",
-    platforms: [.iOS(.v13), .macOS(.v11)],
+    platforms: [.iOS(.v15), .macOS(.v12)],
     products: [
         .library(name: "Lerix", targets: ["Lerix"])
     ],

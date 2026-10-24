@@ -331,9 +331,9 @@ String keys are listed in `Sources/Lerix/Resources/en.lproj/Lerix.strings`.
 
 ## Requirements
 
-- iOS 13+ (macOS 11+ apps register as `os: "macos"` and receive pushes via APNs)
+- iOS 15+ (macOS 12+ apps register as `os: "macos"` and receive pushes via APNs)
 - The feedback and survey UI needs iOS 15+ / macOS 12+; everything else, including
-  `Lerix.feedback.submit` and `Lerix.surveys.dueNps` / `dueRating`, works on iOS 13+
+  `Lerix.feedback.submit` and `Lerix.surveys.dueNps` / `dueRating`, works on iOS 15+
 - `Push Notifications` and `Background Modes → Remote notifications`
   capabilities enabled in your app target
 - An APNs key configured in your Lerix project settings

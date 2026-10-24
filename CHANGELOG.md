@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.5.1 (unreleased)
+
+### Changed
+- **Minimum versions are now iOS 15 and macOS 12.** Xcode 27 can't build for anything older, so CocoaPods rejected
+  1.5.0 (its validation builds the pod). 1.5.0 is only on SwiftPM; this is the same SDK, also on CocoaPods.
+
 ## 1.5.0
 
 ### Changed

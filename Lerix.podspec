@@ -17,8 +17,8 @@ Pod::Spec.new do |s|
   s.author           = { 'Lerix' => 'support@lerix.dev' }
   s.source           = { :git => 'https://github.com/lerixDev/lerix_ios.git', :tag => s.version.to_s }
 
-  s.ios.deployment_target = '13.0'
-  s.osx.deployment_target = '11.0'
+  s.ios.deployment_target = '15.0'
+  s.osx.deployment_target = '12.0'
   s.swift_versions   = ['5.9']
 
   s.source_files     = 'Sources/Lerix/**/*.swift'
