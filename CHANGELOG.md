@@ -1,6 +1,6 @@
 # Changelog
 
-## 1.5.0 (unreleased)
+## 1.5.0
 
 ### Changed
 - **`Lerix.initialize` no longer takes over the notification delegate in apps that don't use push.** It sets
